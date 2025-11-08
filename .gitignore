@@ -1,0 +1,179 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+*.env
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Documentation
+docs/_build/
+site/
+
+# FastAPI
+.pytest_cache/
+
+# Backup files
+*.bak
+*.tmp
+*~
+
+# Compiled files
+*.pyc
+*.pyo
+
+# Package files
+*.tar.gz
+*.zip
+
+# Certificates and keys (IMPORTANT - never commit these!)
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+
+# Upload directories (if you add file upload feature)
+uploads/
+media/
+
+# Cache
+.cache/
+*.cache
+
+# Node modules (if you add frontend later)
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Production build (if deploying static frontend)
+/frontend/dist/
+/frontend/build/
+
+# Celery (if you add background tasks later)
+celerybeat-schedule
+celerybeat.pid
+
+# Redis dump (if you add Redis later)
+dump.rdb
+
+# MySQL dumps
+*.sql
+
+# Render/AWS deployment configs (keep render.yaml but ignore sensitive configs)
+# render.yaml  # Keep this for deployment
+.elasticbeanstalk/
+.platform/
+
+# Secrets and API keys
+secrets.json
+credentials.json
+service-account.json
+
+# Twilio config (if added)
+twilio.env
+
+# Local development overrides
+docker-compose.override.yml
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre
+.pyre/
+
+# pytype
+.pytype/
+
+# Custom
+# Add any project-specific files/folders here
+test_uploads/
+scratch/
+notes.txt
+TODO.md
