@@ -6,7 +6,7 @@ This is the main file that runs the entire API
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.routers import menu
+from app.routers import menu, chat
 
 # Create FastAPI app instance
 app = FastAPI(
@@ -61,6 +61,12 @@ app.include_router(
     menu.router,
     prefix=f"/api/{settings.API_VERSION}",
     tags=["Menu"]
+)
+
+app.include_router(
+    chat.router,
+    prefix=f"/api/{settings.API_VERSION}",
+    tags=["Chat"]
 )
 
 
