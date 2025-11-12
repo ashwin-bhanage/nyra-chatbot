@@ -1,3 +1,3 @@
-from app.routers import chat, menu
+from app.routers import chat, menu, order, reservation
 
-__all__ = ["chat", "menu"]
+__all__ = ["chat", "menu", "order", "reservation"]

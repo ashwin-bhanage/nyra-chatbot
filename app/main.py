@@ -6,7 +6,6 @@ This is the main file that runs the entire API
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.routers import menu, chat
 
 # Create FastAPI app instance
 app = FastAPI(
@@ -56,7 +55,10 @@ async def health_check():
     }
 
 
-# Include routers (we'll add more in next phases)
+# Import routers here (after app is created to avoid circular imports)
+from app.routers import menu, chat, order, reservation
+
+# Include routers
 app.include_router(
     menu.router,
     prefix=f"/api/{settings.API_VERSION}",
@@ -67,6 +69,18 @@ app.include_router(
     chat.router,
     prefix=f"/api/{settings.API_VERSION}",
     tags=["Chat"]
+)
+
+app.include_router(
+    order.router,
+    prefix=f"/api/{settings.API_VERSION}",
+    tags=["Orders"]
+)
+
+app.include_router(
+    reservation.router,
+    prefix=f"/api/{settings.API_VERSION}",
+    tags=["Reservations"]
 )
 
 
@@ -83,6 +97,7 @@ async def startup_event():
     print(f"🕐 Hours: {settings.RESTAURANT_HOURS}")
     print(f"🚚 Delivery: {'Available' if settings.DELIVERY_AVAILABLE else 'Not Available'}")
     print(f"📚 Docs: http://localhost:8000/docs")
+    print(f"💬 Chat Test: http://localhost:8000/api/v1/chat/test")
     print(f"{'='*50}\n")
 
 
