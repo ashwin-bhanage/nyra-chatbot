@@ -29,19 +29,34 @@ class OrderService:
         Returns:
             Created order
         """
-
-        # Get or create user
+        #Get or create user
         if order_data.user_id:
+            # ⭐ CHANGED — auto-create if user_id invalid
             user = db.query(User).filter(User.id == order_data.user_id).first()
             if not user:
-                raise ValueError(f"User with ID {order_data.user_id} not found")
+                user = User(
+                    id=order_data.user_id,      # ⭐ ADDED: Preserve ID if passed
+                    phone_number=order_data.phone_number,
+                    name="Guest User"
+                )
+                db.add(user)
+                db.commit()
+                db.refresh(user)
             user_id = user.id
         elif order_data.phone_number:
+            # ⭐ CHANGED — get or create user properly
             user = db.query(User).filter(User.phone_number == order_data.phone_number).first()
+
             if not user:
-                user = User(phone_number=order_data.phone_number)
+                user = User(
+                    phone_number=order_data.phone_number,
+                    name="Guest User",   # ⭐ ADDED
+                    email=None           # ⭐ ADDED
+                )
                 db.add(user)
-                db.flush()
+                db.commit()             # ⭐ IMPORTANT FIX
+                db.refresh(user)
+
             user_id = user.id
         else:
             raise ValueError("Either user_id or phone_number is required")

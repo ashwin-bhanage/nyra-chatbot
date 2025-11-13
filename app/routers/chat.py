@@ -20,12 +20,13 @@ async def chat(
     """
     Main chat endpoint - send message, get AI response
 
-    - **message**: User's message
-    - **session_id**: Session ID (create one if new conversation)
-    - **user_id**: User ID (optional)
-    - **phone_number**: Phone number (optional, for user tracking)
+    NOW SUPPORTS:
+    - Natural order placement ("I want 2 pizzas and a coke")
+    - Reservation booking ("Book a table for 4 on Friday at 7 PM")
+    - Menu queries
+    - FAQs
 
-    Returns AI-generated response with intent detection
+    Returns AI-generated response with intent detection and actions
     """
 
     try:
@@ -35,21 +36,27 @@ async def chat(
             session_id=request.session_id,
             db=db,
             user_id=request.user_id,
-            phone_number=request.phone_number
+            phone_number=request.phone_number,
+            email=request.email
         )
 
         return ChatResponse(
             response=response_data['response'],
             intent=response_data['intent'],
-            session_id=response_data['session_id'],
+            session_id=request.session_id,
+            user_id=response_data.get('user_id'),
             data={
-                "user_id": response_data.get('user_id'),
-                "menu_items": response_data.get('menu_items')
-            }
+                "menu_items": response_data.get('menu_items', [])
+            },
+            action=response_data.get('action'),
+            order_id=response_data.get('order_id'),
+            reservation_id=response_data.get('reservation_id')
         )
 
     except Exception as e:
         print(f"Chat error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=500,
             detail=f"Error processing chat: {str(e)}"

@@ -14,6 +14,7 @@ class ChatRequest(BaseModel):
     user_id: Optional[int] = Field(None, description="User ID (if registered)")
     session_id: str = Field(..., description="Session ID to track conversation")
     phone_number: Optional[str] = Field(None, max_length=15, description="User's phone number")
+    email: Optional[str] = None      # ⭐ ADDED
 
     class Config:
         json_schema_extra = {
@@ -21,7 +22,9 @@ class ChatRequest(BaseModel):
                 "message": "Show me your pizzas",
                 "user_id": 1,
                 "session_id": "session_abc123",
-                "phone_number": "+1234567890"
+                "phone_number": "+1234567890",
+                "email": "john@example.com"
+
             }
         }
 
@@ -33,21 +36,24 @@ class ChatResponse(BaseModel):
     response: str = Field(..., description="Bot's response message")
     intent: Optional[str] = Field(None, description="Detected intent (menu_query, order, etc.)")
     session_id: str
+    user_id: Optional[int] = None
     data: Optional[dict] = Field(None, description="Additional data (menu items, order details, etc.)")
+    action: Optional[str] = Field(None, description="Action taken (order_created, reservation_created, etc.)")
+    order_id: Optional[int] = None
+    reservation_id: Optional[int] = None
 
     class Config:
         json_schema_extra = {
             "example": {
-                "response": "Here are our delicious pizzas: Margherita ($12.99), Pepperoni ($14.99)",
-                "intent": "menu_query",
+                "response": "Great! Your order has been placed successfully!",
+                "intent": "order_intent",
                 "session_id": "session_abc123",
-                "data": {
-                    "items": [
-                        {"id": 4, "name": "Margherita Pizza", "price": 12.99},
-                        {"id": 5, "name": "Pepperoni Pizza", "price": 14.99}
-                    ]
-                }
-            }
+                "user_id": 1,
+                "data": {},
+                "action": "order_created",
+                "order_id": 1
+            },
+
         }
 
 
