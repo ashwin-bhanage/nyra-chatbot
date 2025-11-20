@@ -19,6 +19,7 @@ async def get_menu(
     available_only: bool = Query(True, description="Show only available items"),
     db: Session = Depends(get_db)
 ):
+    print(">>> Active DB:", db.bind.url)
     """
     Get all menu items
 
