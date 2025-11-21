@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Bot, User, ShoppingCart, Calendar, CheckCircle } from 'lucide-react'
+import { Bot, User, ShoppingCart, Calendar, CheckCircle, Package } from 'lucide-react'
 import MenuItemCard from './MenuItemCard'
 
 const MessageBubble = ({ message, darkMode }) => {
@@ -17,9 +17,7 @@ const MessageBubble = ({ message, darkMode }) => {
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-            darkMode ? 'bg-purple-600' : 'bg-purple-500'
-          }`}
+          className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-linear-to-r from-orange-500 to-red-500`}
         >
           <Bot className="w-5 h-5 text-white" />
         </motion.div>
@@ -35,12 +33,18 @@ const MessageBubble = ({ message, darkMode }) => {
               ? darkMode
                 ? 'bg-gray-800 text-gray-100'
                 : 'bg-white text-gray-900'
-              : 'bg-linear-to-r from-purple-600 to-purple-700 text-white'
+              : 'bg-linear-to-r from-orange-500 to-red-500 text-white'
           }`}
         >
           {/* Action Badge */}
           {message.action && (
             <div className="mb-2 flex items-center gap-2">
+              {message.action === 'items_added_to_cart' && (
+                <>
+                  <ShoppingCart className="w-4 h-4 text-green-500" />
+                  <span className="text-sm text-green-500 font-semibold">Added to Cart!</span>
+                </>
+              )}
               {message.action === 'order_created' && (
                 <>
                   <CheckCircle className="w-4 h-4 text-green-500" />
@@ -58,6 +62,22 @@ const MessageBubble = ({ message, darkMode }) => {
 
           {/* Message Text */}
           <div className="whitespace-pre-wrap">{message.text}</div>
+
+          {/* Cart Items Added */}
+          {message.cartItems && message.cartItems.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-gray-700">
+              <div className="flex items-center gap-2 text-sm mb-2">
+                <Package className="w-4 h-4 text-orange-500" />
+                <span className="font-semibold">Items in Cart:</span>
+              </div>
+              {message.cartItems.map((item, idx) => (
+                <div key={idx} className="flex justify-between text-sm py-1">
+                  <span>{item.quantity}x {item.name}</span>
+                  <span className="text-orange-500">₹{(item.price * item.quantity).toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Order/Reservation IDs */}
           {message.orderId && (

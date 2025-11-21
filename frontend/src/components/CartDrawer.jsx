@@ -160,15 +160,15 @@ const CartDrawer = ({ darkMode }) => {
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between">
                     <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Subtotal</span>
-                    <span className={darkMode ? 'text-white' : 'text-gray-900'}>${cartTotal.toFixed(2)}</span>
+                    <span className={darkMode ? 'text-white' : 'text-gray-900'}>₹{cartTotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Delivery Fee</span>
-                    <span className={darkMode ? 'text-white' : 'text-gray-900'}>${deliveryFee.toFixed(2)}</span>
+                    <span className={darkMode ? 'text-white' : 'text-gray-900'}>₹{deliveryFee.toFixed(2)}</span>
                   </div>
                   <div className={`flex justify-between pt-2 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                     <span className={`font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Total</span>
-                    <span className="font-bold text-orange-500 text-lg">${grandTotal.toFixed(2)}</span>
+                    <span className="font-bold text-orange-500 text-lg">₹{grandTotal.toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -190,7 +190,7 @@ const CartDrawer = ({ darkMode }) => {
                   ) : (
                     <>
                       <ShoppingBag className="w-5 h-5" />
-                      Place Order (${grandTotal.toFixed(2)})
+                      Place Order (₹{grandTotal.toFixed(2)})
                     </>
                   )}
                 </motion.button>
@@ -219,7 +219,7 @@ const CartItem = ({ item, darkMode, onIncrease, onDecrease, onRemove }) => {
             {item.name}
           </h4>
           <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            ${item.price} each
+            ₹{item.price} each
           </p>
         </div>
         <motion.button
@@ -265,7 +265,7 @@ const CartItem = ({ item, darkMode, onIncrease, onDecrease, onRemove }) => {
         </div>
 
         <span className={`font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-          ${(item.price * item.quantity).toFixed(2)}
+          ₹{(item.price * item.quantity).toFixed(2)}
         </span>
       </div>
     </motion.div>

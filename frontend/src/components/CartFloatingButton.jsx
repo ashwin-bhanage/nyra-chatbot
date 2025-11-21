@@ -31,7 +31,7 @@ const CartFloatingButton = ({ darkMode }) => {
             </div>
           </div>
           <div className="bg-white/20 px-4 py-2 rounded-xl">
-            <span className="text-lg font-bold">${grandTotal.toFixed(2)}</span>
+            <span className="text-lg font-bold">₹{grandTotal.toFixed(2)}</span>
           </div>
         </motion.button>
       </motion.div>

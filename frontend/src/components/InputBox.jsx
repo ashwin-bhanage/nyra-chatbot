@@ -23,7 +23,7 @@ const InputBox = ({ darkMode, onSend, disabled }) => {
   }
 
   return (
-    <div className={`border-t px-4 py-3 ${
+    <div className={`border-t px-4 py-3 my-2 rounded-md ${
       darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
     } ${cartCount > 0 ? 'pb-20 sm:pb-4' : ''}`}>
       <form onSubmit={handleSubmit} className="flex items-center gap-3">
@@ -79,7 +79,7 @@ const InputBox = ({ darkMode, onSend, disabled }) => {
               darkMode
                 ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
                 : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-            } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            } ${disabled ? 'opacity-50 cursor-not-allowed' : ''} transition-all ease-in-out`}
           >
             {suggestion}
           </motion.button>
