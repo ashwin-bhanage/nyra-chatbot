@@ -21,12 +21,12 @@ async def chat(
     Main chat endpoint - send message, get AI response
 
     NOW SUPPORTS:
-    - Natural order placement ("I want 2 pizzas and a coke")
-    - Reservation booking ("Book a table for 4 on Friday at 7 PM")
+    - Natural order placement (adds to cart)
+    - Reservation booking
     - Menu queries
     - FAQs
 
-    Returns AI-generated response with intent detection and actions
+    Returns AI-generated response with cart items for orders
     """
 
     try:
@@ -36,8 +36,7 @@ async def chat(
             session_id=request.session_id,
             db=db,
             user_id=request.user_id,
-            phone_number=request.phone_number,
-            email=request.email
+            phone_number=request.phone_number
         )
 
         return ChatResponse(
@@ -46,7 +45,8 @@ async def chat(
             session_id=request.session_id,
             user_id=response_data.get('user_id'),
             data={
-                "menu_items": response_data.get('menu_items', [])
+                "menu_items": response_data.get('menu_items', []),
+                "cart_items": response_data.get('cart_items', [])
             },
             action=response_data.get('action'),
             order_id=response_data.get('order_id'),

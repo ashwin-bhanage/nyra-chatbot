@@ -25,23 +25,15 @@ class ChatService:
         session_id: str,
         db: Session,
         user_id: Optional[int] = None,
-        phone_number: Optional[str] = None,
-        email: Optional[str] = None
+        phone_number: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Process incoming chat message with order/reservation support
         """
 
         # Step 1: Get or create user
-        user = None
-
-        if phone_number:
-            user = db.query(User).filter(User.phone_number == phone_number).first()
-
-            if not user:
-                # ⭐ CHANGED — always create if not found
-                user = self._get_or_create_user(db, phone_number, email) #ADDED EMAIL
-
+        if phone_number and not user_id:
+            user = self._get_or_create_user(db, phone_number)
             user_id = user.id
 
         # Step 2: Get chat history for context
@@ -107,7 +99,7 @@ class ChatService:
         phone_number: Optional[str],
         chat_history: List[Dict]
     ) -> Dict[str, Any]:
-        """Handle order placement through chat"""
+        """Handle order placement through chat - ADD TO CART instead of creating order"""
 
         # Get available menu items
         menu_items = db.query(MenuItem).filter(
@@ -125,11 +117,12 @@ class ChatService:
         if not extraction_result['success'] or extraction_result['data']['confidence'] == 'low':
             # AI couldn't understand the order - ask for clarification
             return {
-                "response": "I'd love to help you order! Could you please specify which items you'd like? For example: 'I want 2 Margherita pizzas and 1 Coke'",
+                "response": "I'd love to help you order! Could you please specify which items you'd like? For example: 'I want 2 Chicken Biryani and 1 Butter Naan'",
                 "intent": "order_intent",
                 "session_id": "",
                 "user_id": user_id,
                 "menu_items": menu_items_dict,
+                "cart_items": [],
                 "action": "clarification_needed"
             }
 
@@ -137,30 +130,33 @@ class ChatService:
         order_data = extraction_result['data']
 
         try:
-            # Create order items
-            order_items = [
-                OrderItemCreate(
-                    menu_item_id=item['item_id'],
-                    quantity=item['quantity']
+            # Prepare cart items to send to frontend
+            cart_items = []
+            total_amount = 0
+
+            for item in order_data['items']:
+                # Find the menu item details
+                menu_item = next(
+                    (m for m in menu_items_dict if m['id'] == item['item_id']),
+                    None
                 )
-                for item in order_data['items']
-            ]
+                if menu_item:
+                    cart_items.append({
+                        'id': item['item_id'],
+                        'name': item['item_name'],
+                        'price': float(item['price']),
+                        'quantity': item['quantity'],
+                        'description': menu_item.get('description', '')
+                    })
+                    total_amount += item['price'] * item['quantity']
 
-            # Create order
-            order_create = OrderCreate(
-                user_id=user_id,
-                phone_number=phone_number,
-                items=order_items,
-                delivery_address=None,  # Can ask for this next
-                special_instructions=None
-            )
+            # Build response message
+            items_text = "\n".join([
+                f"• {item['quantity']}x {item['name']} (${item['price']:.2f} each)"
+                for item in cart_items
+            ])
 
-            order = order_service.create_order(db, order_create)
-
-            # Generate success response
-            summary = order_service.generate_order_summary(order, db)
-
-            response_text = f"Great! Your order has been placed successfully! 🎉\n\n{summary}\n\nWould you like this delivered? If yes, please provide your delivery address."
+            response_text = f"Great choice! I've added these items to your cart:\n\n{items_text}\n\n💰 Subtotal: ${total_amount:.2f}\n\nYou can review your cart and place the order when ready! 🛒"
 
             return {
                 "response": response_text,
@@ -168,20 +164,20 @@ class ChatService:
                 "session_id": "",
                 "user_id": user_id,
                 "menu_items": [],
-                "action": "order_created",
-                "order_id": order.id,
-                "order_total": float(order.total_amount)
+                "cart_items": cart_items,
+                "action": "items_added_to_cart"
             }
 
         except Exception as e:
-            print(f"[ERROR] Order creation failed: {str(e)}")
+            print(f"[ERROR] Cart preparation failed: {str(e)}")
             return {
-                "response": f"I'm sorry, there was an issue processing your order: {str(e)}. Could you please try again?",
+                "response": f"I'm sorry, there was an issue adding items to your cart. Could you please try again?",
                 "intent": "order_intent",
                 "session_id": "",
                 "user_id": user_id,
                 "menu_items": menu_items_dict,
-                "action": "order_failed"
+                "cart_items": [],
+                "action": "cart_failed"
             }
 
     async def _handle_reservation_intent(
@@ -278,28 +274,15 @@ class ChatService:
 
         return 'general_query'
 
-    def _get_or_create_user(self, db: Session, phone_number: str, email: Optional[str] = None) -> User:
-        """Get existing user or create new one automatically"""
-
+    def _get_or_create_user(self, db: Session, phone_number: str) -> User:
+        """Get existing user or create new one"""
         user = db.query(User).filter(User.phone_number == phone_number).first()
 
-        if user:
-            # ⭐ ADDED — Update email if provided and missing
-            if email and not user.email:
-                user.email = email
-                db.commit()
-                db.refresh(user)
-            return user
-
-        # ⭐ CHANGED — Create with email
-        user = User(
-            phone_number=phone_number,
-            name="Guest User",
-            email=email
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
+        if not user:
+            user = User(phone_number=phone_number)
+            db.add(user)
+            db.commit()
+            db.refresh(user)
 
         return user
 
