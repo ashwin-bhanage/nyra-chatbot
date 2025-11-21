@@ -89,7 +89,7 @@ const ChatContainer = ({ darkMode }) => {
     <div className="flex-1 flex flex-col overflow-hidden mx-2 rounded-lg">
       {/* Messages Area */}
       <div className={`flex-1 overflow-y-auto px-4 py-6 space-y-4 ${
-        darkMode ? 'bg-gray-900' : 'bg-gray-50'
+        darkMode ? 'bg-gray-900' : 'bg-gray-100'
       }`}>
         <AnimatePresence>
           {messages.map((message) => (
