@@ -83,12 +83,12 @@ const CartDrawer = ({ darkMode }) => {
             {/* Header */}
             <div className={`p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center justify-between`}>
               <div className="flex items-center gap-2">
-                <ShoppingBag className={`w-6 h-6 ${darkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+                <ShoppingBag className={`w-6 h-6 ${darkMode ? 'text-orange-400' : 'text-orange-600'}`} />
                 <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                   Your Cart
                 </h2>
                 {cartCount > 0 && (
-                  <span className="bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                  <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
                     {cartCount} items
                   </span>
                 )}
@@ -160,15 +160,15 @@ const CartDrawer = ({ darkMode }) => {
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between">
                     <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Subtotal</span>
-                    <span className={darkMode ? 'text-white' : 'text-gray-900'}>₹{cartTotal.toFixed(2)}</span>
+                    <span className={darkMode ? 'text-white' : 'text-gray-900'}>${cartTotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Delivery Fee</span>
-                    <span className={darkMode ? 'text-white' : 'text-gray-900'}>₹{deliveryFee.toFixed(2)}</span>
+                    <span className={darkMode ? 'text-white' : 'text-gray-900'}>${deliveryFee.toFixed(2)}</span>
                   </div>
                   <div className={`flex justify-between pt-2 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                     <span className={`font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Total</span>
-                    <span className="font-bold text-purple-500 text-lg">₹{grandTotal.toFixed(2)}</span>
+                    <span className="font-bold text-orange-500 text-lg">${grandTotal.toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -178,7 +178,7 @@ const CartDrawer = ({ darkMode }) => {
                   whileTap={{ scale: 0.98 }}
                   onClick={handlePlaceOrder}
                   disabled={isOrdering}
-                  className={`w-full py-4 rounded-xl bg-linear-to-r from-purple-600 to-purple-700 text-white font-bold text-lg flex items-center justify-center gap-2 hover:from-purple-700 hover:to-purple-800 transition-all ${
+                  className={`w-full py-4 rounded-xl bg-linear-to-r from-orange-500 to-red-500 text-white font-bold text-lg flex items-center justify-center gap-2 hover:from-orange-600 hover:to-red-600 transition-all ${
                     isOrdering ? 'opacity-75 cursor-not-allowed' : ''
                   }`}
                 >
@@ -190,7 +190,7 @@ const CartDrawer = ({ darkMode }) => {
                   ) : (
                     <>
                       <ShoppingBag className="w-5 h-5" />
-                      Place Order (₹{grandTotal.toFixed(2)})
+                      Place Order (${grandTotal.toFixed(2)})
                     </>
                   )}
                 </motion.button>
@@ -219,7 +219,7 @@ const CartItem = ({ item, darkMode, onIncrease, onDecrease, onRemove }) => {
             {item.name}
           </h4>
           <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            ₹{item.price} each
+            ${item.price} each
           </p>
         </div>
         <motion.button
@@ -258,14 +258,14 @@ const CartItem = ({ item, darkMode, onIncrease, onDecrease, onRemove }) => {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={onIncrease}
-            className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center hover:bg-purple-700"
+            className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center hover:bg-orange-600"
           >
             <Plus className="w-4 h-4" />
           </motion.button>
         </div>
 
         <span className={`font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-          ₹{(item.price * item.quantity).toFixed(2)}
+          ${(item.price * item.quantity).toFixed(2)}
         </span>
       </div>
     </motion.div>

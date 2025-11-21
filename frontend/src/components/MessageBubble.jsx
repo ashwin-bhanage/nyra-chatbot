@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { Bot, User, ShoppingCart, Calendar, CheckCircle } from 'lucide-react'
-import MenuItemCard from './MenuCardItem'
+import MenuItemCard from './MenuItemCard'
 
 const MessageBubble = ({ message, darkMode }) => {
   const isBot = message.type === 'bot'

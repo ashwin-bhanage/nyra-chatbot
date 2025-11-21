@@ -22,8 +22,8 @@ const MenuItemCard = ({ item, darkMode }) => {
         <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
           {item.name}
         </h4>
-        <span className="text-lg font-bold text-purple-500">
-          ₹{item.price}
+        <span className="text-lg font-bold text-orange-500">
+          ${item.price}
         </span>
       </div>
 
@@ -39,7 +39,7 @@ const MenuItemCard = ({ item, darkMode }) => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleAddToCart}
-          className="w-full bg-linear-to-r from-purple-600 to-purple-700 text-white py-2 px-4 rounded-lg flex items-center justify-center gap-2 text-sm font-medium hover:from-purple-700 hover:to-purple-800 transition-all"
+          className="w-full bg-linear-to-r from-orange-500 to-red-500 text-white py-2 px-4 rounded-lg flex items-center justify-center gap-2 text-sm font-medium hover:from-orange-600 hover:to-red-600 transition-all"
         >
           <ShoppingCart className="w-4 h-4" />
           Add to Cart
@@ -47,14 +47,14 @@ const MenuItemCard = ({ item, darkMode }) => {
       ) : (
         <div className="flex items-center justify-between">
           <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            ₹{(item.price * quantity).toFixed(2)}
+            ${(item.price * quantity).toFixed(2)}
           </span>
           <div className="flex items-center gap-2">
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => decreaseQuantity(item.id)}
-              className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center hover:bg-purple-700 transition-colors"
+              className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center hover:bg-orange-600 transition-colors"
             >
               <Minus className="w-4 h-4" />
             </motion.button>
@@ -72,7 +72,7 @@ const MenuItemCard = ({ item, darkMode }) => {
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => increaseQuantity(item.id)}
-              className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center hover:bg-purple-700 transition-colors"
+              className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center hover:bg-orange-600 transition-colors"
             >
               <Plus className="w-4 h-4" />
             </motion.button>
