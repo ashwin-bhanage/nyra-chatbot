@@ -6,6 +6,7 @@ import google.generativeai as genai
 from app.config import settings
 from typing import Optional, Dict, Any
 import json
+import re
 
 # Configure Gemini API
 genai.configure(api_key=settings.GEMINI_API_KEY)
@@ -62,6 +63,11 @@ IMPORTANT RULES:
 - Don't make up prices or menu items
 - Suggest alternatives if something is unavailable
 - Confirm order details before finalizing
+
+CURRENCY RULE:
+- Always show prices in Indian Rupees using the ₹ symbol.
+- Never use the dollar sign ($) or other currency symbols in responses.
+- Format prices like: ₹180 or ₹250 (integers preferred).
 """
         return context
 
@@ -92,9 +98,16 @@ IMPORTANT RULES:
             # Extract intent from the message
             intent = self._detect_intent(user_message)
 
+            # Ensure response uses ₹ (extra safety: replace accidental $ with ₹)
+            response_text = response.text if hasattr(response, 'text') else str(response)
+            # replace $n.nn patterns conservatively
+            response_text = re.sub(r"\$\s*([0-9]+(?:\.[0-9]+)?)", r"₹\1", response_text)
+            # replace any stray standalone $ signs
+            response_text = response_text.replace("$", "₹")
+
             return {
                 "success": True,
-                "response": response.text,
+                "response": response_text,
                 "intent": intent,
                 "error": None
             }
@@ -122,7 +135,15 @@ IMPORTANT RULES:
         if menu_items:
             menu_text = "\n\nAVAILABLE MENU ITEMS:\n"
             for item in menu_items:
-                menu_text += f"- {item['name']} (${item['price']}): {item.get('description', 'No description')}\n"
+                # Force price formatting to integer INR for the prompt
+                try:
+                    price_val = int(float(item.get('price', 0)))
+                except Exception:
+                    price_val = item.get('price', 0)
+                menu_text += (
+                    f"- {item.get('name')} (₹{price_val}): "
+                    f"{item.get('description', 'No description available')}\n"
+                )
             prompt_parts.append(menu_text)
 
         # Add chat history for context
@@ -145,6 +166,9 @@ RESPOND TO THE CUSTOMER:
 - If they want to order, guide them through the process
 - If they want to reserve, ask for date, time, and party size
 - Keep responses concise (2-4 sentences usually)
+- Always format prices in Indian Rupees using the ₹ symbol (integers preferred)
+- When listing multiple items include quantity and integer prices: e.g., "2x Paneer Tikka (₹240 each)"
+- If you are asked to extract order items, respond ONLY with the required JSON and no extra commentary.
 """)
 
         return "\n".join(prompt_parts)
@@ -204,10 +228,14 @@ RESPOND TO THE CUSTOMER:
             Dict with extracted items and quantities
         """
         try:
-            # Build menu context
+            # Build menu context with INR formatting
             menu_text = "Available items:\n"
             for item in menu_items:
-                menu_text += f"- {item['name']} (ID: {item['id']}, Price: ${item['price']})\n"
+                try:
+                    price_val = int(float(item.get('price', 0)))
+                except Exception:
+                    price_val = item.get('price', 0)
+                menu_text += f"- {item['name']} (ID: {item['id']}, Price: ₹{price_val})\n"
 
             prompt = f"""
 {menu_text}
@@ -218,9 +246,9 @@ Extract the items and quantities they want to order.
 Respond ONLY with a JSON object in this exact format:
 {{
     "items": [
-        {{"item_id": 4, "item_name": "Margherita Pizza", "quantity": 2, "price": 12.99}}
+        {{"item_id": 4, "item_name": "Margherita Pizza", "quantity": 2, "price": 129}}
     ],
-    "total": 25.98,
+    "total": 258,
     "confidence": "high"
 }}
 
@@ -231,14 +259,25 @@ Only include items that exist in the available menu.
             response = self.model.generate_content(prompt)
 
             # Parse JSON from response
-            # Remove markdown code blocks if present
-            response_text = response.text.strip()
+            response_text = response.text.strip() if hasattr(response, 'text') else str(response).strip()
+
+            # Strip markdown fences if present
             if response_text.startswith("```json"):
                 response_text = response_text.replace("```json", "").replace("```", "").strip()
             elif response_text.startswith("```"):
                 response_text = response_text.replace("```", "").strip()
 
-            order_data = json.loads(response_text)
+            # Some models include trailing commentary — attempt to extract JSON blob
+            # Find first '{' and last '}' and parse substring
+            try:
+                start = response_text.find("{")
+                end = response_text.rfind("}")
+                json_text = response_text[start:end+1] if start != -1 and end != -1 else response_text
+                order_data = json.loads(json_text)
+            except Exception:
+                # Fall back to direct load (will raise if invalid)
+                order_data = json.loads(response_text)
+
             return {
                 "success": True,
                 "data": order_data,
@@ -284,13 +323,21 @@ Use ISO format for date (YYYY-MM-DD) and time (HH:MM in 24-hour format).
             response = self.model.generate_content(prompt)
 
             # Parse JSON
-            response_text = response.text.strip()
+            response_text = response.text.strip() if hasattr(response, 'text') else str(response).strip()
             if response_text.startswith("```json"):
                 response_text = response_text.replace("```json", "").replace("```", "").strip()
             elif response_text.startswith("```"):
                 response_text = response_text.replace("```", "").strip()
 
-            reservation_data = json.loads(response_text)
+            # Extract JSON blob heuristically
+            try:
+                start = response_text.find("{")
+                end = response_text.rfind("}")
+                json_text = response_text[start:end+1] if start != -1 and end != -1 else response_text
+                reservation_data = json.loads(json_text)
+            except Exception:
+                reservation_data = json.loads(response_text)
+
             return {
                 "success": True,
                 "data": reservation_data,

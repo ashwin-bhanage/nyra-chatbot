@@ -114,7 +114,7 @@ class ChatService:
             menu_items_dict
         )
 
-        if not extraction_result['success'] or extraction_result['data']['confidence'] == 'low':
+        if not extraction_result['success'] or (extraction_result.get('data') and extraction_result['data'].get('confidence') == 'low'):
             # AI couldn't understand the order - ask for clarification
             return {
                 "response": "I'd love to help you order! Could you please specify which items you'd like? For example: 'I want 2 Chicken Biryani and 1 Butter Naan'",
@@ -134,29 +134,36 @@ class ChatService:
             cart_items = []
             total_amount = 0
 
-            for item in order_data['items']:
+            for item in order_data.get('items', []):
                 # Find the menu item details
                 menu_item = next(
                     (m for m in menu_items_dict if m['id'] == item['item_id']),
                     None
                 )
                 if menu_item:
+                    price = float(item.get('price', menu_item.get('price', 0)))
+                    quantity = int(item.get('quantity', 1))
                     cart_items.append({
                         'id': item['item_id'],
-                        'name': item['item_name'],
-                        'price': float(item['price']),
-                        'quantity': item['quantity'],
+                        'name': item.get('item_name', menu_item.get('name')),
+                        'price': price,
+                        'quantity': quantity,
                         'description': menu_item.get('description', '')
                     })
-                    total_amount += item['price'] * item['quantity']
+                    total_amount += price * quantity
 
-            # Build response message
+            # Build response message — use ₹ and integer display when possible
             items_text = "\n".join([
-                f"• {item['quantity']}x {item['name']} (${item['price']:.2f} each)"
+                f"• {item['quantity']}x {item['name']} (₹{int(item['price'])} each)"
                 for item in cart_items
             ])
 
-            response_text = f"Great choice! I've added these items to your cart:\n\n{items_text}\n\n💰 Subtotal: ${total_amount:.2f}\n\nYou can review your cart and place the order when ready! 🛒"
+            response_text = (
+                f"Great choice! I've added these items to your cart:\n\n"
+                f"{items_text}\n\n"
+                f"💰 Subtotal: ₹{int(total_amount)}\n\n"
+                "You can review your cart and place the order when ready! 🛒"
+            )
 
             return {
                 "response": response_text,
@@ -316,43 +323,55 @@ class ChatService:
     ) -> List[Dict[str, Any]]:
         """Get menu items relevant to the query"""
 
-        message_lower = message.lower()
+        message_lower = message.lower().strip()
         print(f"[DEBUG] Searching for: '{message_lower}'")
 
-        # Check for specific items first
-        search_terms = {
-            'pizza': ['pizza'],
-            'burger': ['burger'],
-            'pasta': ['pasta'],
-            'salad': ['salad'],
-            'wings': ['wings'],
-            'bread': ['bread'],
-            'brownie': ['brownie'],
-            'cake': ['cake', 'cheesecake'],
-            'coffee': ['coffee'],
-            'juice': ['juice'],
-            'cola': ['cola'],
-            'tiramisu': ['tiramisu'],
-            'mozzarella': ['mozzarella']
+        # 1) Quick exact name match (case-insensitive, partial)
+        exact_items = db.query(MenuItem).filter(
+            MenuItem.is_available == True,
+            MenuItem.name.ilike(f"%{message_lower}%")
+        ).all()
+        if exact_items:
+            print(f"[DEBUG] Exact/partial name match: {len(exact_items)} items")
+            return [item.to_dict() for item in exact_items]
+
+        # 2) Keyword-driven matches for Indian menu terms
+        indian_terms = {
+            "paneer": ["paneer"],
+            "biryani": ["biryani"],
+            "naan": ["naan"],
+            "roti": ["roti", "chapati"],
+            "paratha": ["paratha", "parantha"],
+            "dal": ["dal", "dhal"],
+            "chicken": ["chicken", "murgh"],
+            "mutton": ["mutton", "goat", "rogan"],
+            "fish": ["fish"],
+            "prawn": ["prawn", "shrimp"],
+            "soup": ["soup", "shorba"],
+            "tikka": ["tikka"],
+            "tandoori": ["tandoori"],
+            "manchow": ["manchow"],
+            "noodles": ["noodles", "noodle"],
+            "rice": ["rice", "fried rice", "pulao"],
+            "chili": ["chilli", "chili", "schezwan", "schezwan"]
         }
 
-        for key, terms in search_terms.items():
+        for name, terms in indian_terms.items():
             if any(term in message_lower for term in terms):
                 items = db.query(MenuItem).filter(
-                    or_(*[MenuItem.name.ilike(f"%{term}%") for term in terms]),
-                    MenuItem.is_available == True
+                    MenuItem.is_available == True,
+                    or_(*[MenuItem.name.ilike(f"%{term}%") for term in terms])
                 ).all()
-
                 if items:
-                    print(f"[DEBUG] Found {len(items)} items for '{key}'")
+                    print(f"[DEBUG] Found {len(items)} Indian-term items for '{name}'")
                     return [item.to_dict() for item in items]
 
-        # Check for categories
+        # 3) Category search using keywords (appetizer/main/dessert/beverage)
         category_keywords = {
-            'appetizer': ['appetizer', 'starter', 'app'],
-            'main': ['main', 'entree', 'meal', 'lunch', 'dinner'],
-            'dessert': ['dessert', 'sweet', 'desserts'],
-            'beverage': ['drink', 'drinks', 'beverage', 'beverages']
+            'appetizer': ['starter', 'appetizer', 'snack', 'soup', 'tandoor'],
+            'main': ['main', 'curry', 'meal', 'thali', 'biryani', 'rice'],
+            'dessert': ['sweet', 'dessert', 'mithai', 'halwa', 'kulfi', 'gulab'],
+            'beverage': ['drink', 'juice', 'chai', 'coffee', 'lassi', 'cold', 'soda']
         }
 
         for category, keywords in category_keywords.items():
@@ -371,8 +390,24 @@ class ChatService:
                 if filtered_items:
                     return [item.to_dict() for item in filtered_items]
 
-        # Default: return all items
-        print("[DEBUG] No match, returning all items")
+        # 4) Fuzzy-ish fallback: match any single token in name or description
+        tokens = [t for t in message_lower.split() if len(t) > 2]
+        if tokens:
+            candidates = []
+            all_items = db.query(MenuItem).filter(MenuItem.is_available == True).all()
+            for item in all_items:
+                name = (item.name or "").lower()
+                desc = (item.description or "").lower()
+                match_score = sum(1 for t in tokens if t in name or t in desc)
+                if match_score > 0:
+                    candidates.append((match_score, item))
+            candidates.sort(key=lambda x: x[0], reverse=True)
+            if candidates:
+                print(f"[DEBUG] Fuzzy token matches: returning {len(candidates)} items")
+                return [c[1].to_dict() for c in candidates[:10]]
+
+        # Default: return top available items (limit 10)
+        print("[DEBUG] No match, returning top items")
         items = db.query(MenuItem).filter(
             MenuItem.is_available == True
         ).limit(10).all()
