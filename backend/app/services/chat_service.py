@@ -41,18 +41,22 @@ class ChatService:
 
         # Step 3: Determine intent
         intent = self._detect_intent(user_message)
+        print(f"[DEBUG] User message: '{user_message}'")
         print(f"[DEBUG] Detected intent: {intent}")
 
         # Step 4: Handle different intents
         response_data = None
 
         if intent == 'order_intent':
+            print("[DEBUG] Handling ORDER intent...")
             # Handle order placement
             response_data = await self._handle_order_intent(
                 db, user_message, user_id, phone_number, chat_history
             )
+            print(f"[DEBUG] Order response cart_items: {response_data.get('cart_items', [])}")
 
         elif intent == 'reservation_intent':
+            print("[DEBUG] Handling RESERVATION intent...")
             # Handle reservation
             response_data = await self._handle_reservation_intent(
                 db, user_message, user_id, phone_number, chat_history
@@ -76,6 +80,7 @@ class ChatService:
                 "session_id": session_id,
                 "user_id": user_id,
                 "menu_items": menu_items,
+                "cart_items": [],  # Always include cart_items
                 "action": None
             }
 
@@ -101,12 +106,15 @@ class ChatService:
     ) -> Dict[str, Any]:
         """Handle order placement through chat - ADD TO CART instead of creating order"""
 
+        print("[DEBUG] _handle_order_intent called")
+
         # Get available menu items
         menu_items = db.query(MenuItem).filter(
             MenuItem.is_available == True
         ).all()
 
         menu_items_dict = [item.to_dict() for item in menu_items]
+        print(f"[DEBUG] Found {len(menu_items_dict)} menu items")
 
         # Use Gemini to extract order items
         extraction_result = await gemini_service.extract_order_items(
@@ -114,20 +122,35 @@ class ChatService:
             menu_items_dict
         )
 
-        if not extraction_result['success'] or (extraction_result.get('data') and extraction_result['data'].get('confidence') == 'low'):
-            # AI couldn't understand the order - ask for clarification
+        print(f"[DEBUG] Extraction result: {extraction_result}")
+
+        if not extraction_result['success']:
+            print("[DEBUG] Extraction failed")
             return {
                 "response": "I'd love to help you order! Could you please specify which items you'd like? For example: 'I want 2 Chicken Biryani and 1 Butter Naan'",
                 "intent": "order_intent",
                 "session_id": "",
                 "user_id": user_id,
-                "menu_items": menu_items_dict,
+                "menu_items": menu_items_dict[:10],
+                "cart_items": [],
+                "action": "clarification_needed"
+            }
+
+        if extraction_result['data'].get('confidence') == 'low':
+            print("[DEBUG] Low confidence extraction")
+            return {
+                "response": "I'd love to help you order! Could you please specify which items you'd like? For example: 'I want 2 Chicken Biryani and 1 Butter Naan'",
+                "intent": "order_intent",
+                "session_id": "",
+                "user_id": user_id,
+                "menu_items": menu_items_dict[:10],
                 "cart_items": [],
                 "action": "clarification_needed"
             }
 
         # Extract order data
         order_data = extraction_result['data']
+        print(f"[DEBUG] Order data: {order_data}")
 
         try:
             # Prepare cart items to send to frontend
@@ -135,37 +158,46 @@ class ChatService:
             total_amount = 0
 
             for item in order_data.get('items', []):
+                print(f"[DEBUG] Processing item: {item}")
                 # Find the menu item details
                 menu_item = next(
-                    (m for m in menu_items_dict if m['id'] == item['item_id']),
+                    (m for m in menu_items_dict if m['id'] == item.get('item_id')),
                     None
                 )
                 if menu_item:
-                    price = float(item.get('price', menu_item.get('price', 0)))
-                    quantity = int(item.get('quantity', 1))
                     cart_items.append({
                         'id': item['item_id'],
-                        'name': item.get('item_name', menu_item.get('name')),
-                        'price': price,
-                        'quantity': quantity,
+                        'name': item.get('item_name', menu_item['name']),
+                        'price': float(item.get('price', menu_item['price'])),
+                        'quantity': item.get('quantity', 1),
                         'description': menu_item.get('description', '')
                     })
-                    total_amount += price * quantity
+                    total_amount += float(item.get('price', menu_item['price'])) * item.get('quantity', 1)
 
-            # Build response message — use ₹ and integer display when possible
+            print(f"[DEBUG] Cart items prepared: {cart_items}")
+            print(f"[DEBUG] Total amount: {total_amount}")
+
+            if not cart_items:
+                print("[DEBUG] No cart items found!")
+                return {
+                    "response": "I couldn't find those items in our menu. Could you please try again? You can say something like 'Order 2 Chicken Biryani'",
+                    "intent": "order_intent",
+                    "session_id": "",
+                    "user_id": user_id,
+                    "menu_items": menu_items_dict[:10],
+                    "cart_items": [],
+                    "action": "items_not_found"
+                }
+
+            # Build response message
             items_text = "\n".join([
-                f"• {item['quantity']}x {item['name']} (₹{int(item['price'])} each)"
+                f"• {item['quantity']}x {item['name']} (${item['price']:.2f} each)"
                 for item in cart_items
             ])
 
-            response_text = (
-                f"Great choice! I've added these items to your cart:\n\n"
-                f"{items_text}\n\n"
-                f"💰 Subtotal: ₹{int(total_amount)}\n\n"
-                "You can review your cart and place the order when ready! 🛒"
-            )
+            response_text = f"Great choice! I've added these items to your cart:\n\n{items_text}\n\n💰 Subtotal: ${total_amount:.2f}\n\nYou can review your cart and place the order when ready! 🛒"
 
-            return {
+            result = {
                 "response": response_text,
                 "intent": "order_intent",
                 "session_id": "",
@@ -174,15 +206,19 @@ class ChatService:
                 "cart_items": cart_items,
                 "action": "items_added_to_cart"
             }
+            print(f"[DEBUG] Final response: {result}")
+            return result
 
         except Exception as e:
             print(f"[ERROR] Cart preparation failed: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return {
                 "response": f"I'm sorry, there was an issue adding items to your cart. Could you please try again?",
                 "intent": "order_intent",
                 "session_id": "",
                 "user_id": user_id,
-                "menu_items": menu_items_dict,
+                "menu_items": menu_items_dict[:10],
                 "cart_items": [],
                 "action": "cart_failed"
             }
@@ -208,6 +244,7 @@ class ChatService:
                 "session_id": "",
                 "user_id": user_id,
                 "menu_items": [],
+                "cart_items": [],
                 "action": "clarification_needed"
             }
 
@@ -238,6 +275,7 @@ class ChatService:
                 "session_id": "",
                 "user_id": user_id,
                 "menu_items": [],
+                "cart_items": [],
                 "action": "reservation_created",
                 "reservation_id": reservation.id
             }
@@ -250,6 +288,7 @@ class ChatService:
                 "session_id": "",
                 "user_id": user_id,
                 "menu_items": [],
+                "cart_items": [],
                 "action": "reservation_failed"
             }
 
@@ -323,55 +362,43 @@ class ChatService:
     ) -> List[Dict[str, Any]]:
         """Get menu items relevant to the query"""
 
-        message_lower = message.lower().strip()
+        message_lower = message.lower()
         print(f"[DEBUG] Searching for: '{message_lower}'")
 
-        # 1) Quick exact name match (case-insensitive, partial)
-        exact_items = db.query(MenuItem).filter(
-            MenuItem.is_available == True,
-            MenuItem.name.ilike(f"%{message_lower}%")
-        ).all()
-        if exact_items:
-            print(f"[DEBUG] Exact/partial name match: {len(exact_items)} items")
-            return [item.to_dict() for item in exact_items]
-
-        # 2) Keyword-driven matches for Indian menu terms
-        indian_terms = {
-            "paneer": ["paneer"],
-            "biryani": ["biryani"],
-            "naan": ["naan"],
-            "roti": ["roti", "chapati"],
-            "paratha": ["paratha", "parantha"],
-            "dal": ["dal", "dhal"],
-            "chicken": ["chicken", "murgh"],
-            "mutton": ["mutton", "goat", "rogan"],
-            "fish": ["fish"],
-            "prawn": ["prawn", "shrimp"],
-            "soup": ["soup", "shorba"],
-            "tikka": ["tikka"],
-            "tandoori": ["tandoori"],
-            "manchow": ["manchow"],
-            "noodles": ["noodles", "noodle"],
-            "rice": ["rice", "fried rice", "pulao"],
-            "chili": ["chilli", "chili", "schezwan", "schezwan"]
+        # Check for specific items first
+        search_terms = {
+            'pizza': ['pizza'],
+            'burger': ['burger'],
+            'pasta': ['pasta'],
+            'salad': ['salad'],
+            'wings': ['wings'],
+            'bread': ['bread'],
+            'brownie': ['brownie'],
+            'cake': ['cake', 'cheesecake'],
+            'coffee': ['coffee'],
+            'juice': ['juice'],
+            'cola': ['cola'],
+            'tiramisu': ['tiramisu'],
+            'mozzarella': ['mozzarella']
         }
 
-        for name, terms in indian_terms.items():
+        for key, terms in search_terms.items():
             if any(term in message_lower for term in terms):
                 items = db.query(MenuItem).filter(
-                    MenuItem.is_available == True,
-                    or_(*[MenuItem.name.ilike(f"%{term}%") for term in terms])
+                    or_(*[MenuItem.name.ilike(f"%{term}%") for term in terms]),
+                    MenuItem.is_available == True
                 ).all()
+
                 if items:
-                    print(f"[DEBUG] Found {len(items)} Indian-term items for '{name}'")
+                    print(f"[DEBUG] Found {len(items)} items for '{key}'")
                     return [item.to_dict() for item in items]
 
-        # 3) Category search using keywords (appetizer/main/dessert/beverage)
+        # Check for categories
         category_keywords = {
-            'appetizer': ['starter', 'appetizer', 'snack', 'soup', 'tandoor'],
-            'main': ['main', 'curry', 'meal', 'thali', 'biryani', 'rice'],
-            'dessert': ['sweet', 'dessert', 'mithai', 'halwa', 'kulfi', 'gulab'],
-            'beverage': ['drink', 'juice', 'chai', 'coffee', 'lassi', 'cold', 'soda']
+            'appetizer': ['appetizer', 'starter', 'app'],
+            'main': ['main', 'entree', 'meal', 'lunch', 'dinner'],
+            'dessert': ['dessert', 'sweet', 'desserts'],
+            'beverage': ['drink', 'drinks', 'beverage', 'beverages']
         }
 
         for category, keywords in category_keywords.items():
@@ -390,24 +417,8 @@ class ChatService:
                 if filtered_items:
                     return [item.to_dict() for item in filtered_items]
 
-        # 4) Fuzzy-ish fallback: match any single token in name or description
-        tokens = [t for t in message_lower.split() if len(t) > 2]
-        if tokens:
-            candidates = []
-            all_items = db.query(MenuItem).filter(MenuItem.is_available == True).all()
-            for item in all_items:
-                name = (item.name or "").lower()
-                desc = (item.description or "").lower()
-                match_score = sum(1 for t in tokens if t in name or t in desc)
-                if match_score > 0:
-                    candidates.append((match_score, item))
-            candidates.sort(key=lambda x: x[0], reverse=True)
-            if candidates:
-                print(f"[DEBUG] Fuzzy token matches: returning {len(candidates)} items")
-                return [c[1].to_dict() for c in candidates[:10]]
-
-        # Default: return top available items (limit 10)
-        print("[DEBUG] No match, returning top items")
+        # Default: return all items
+        print("[DEBUG] No match, returning all items")
         items = db.query(MenuItem).filter(
             MenuItem.is_available == True
         ).limit(10).all()
