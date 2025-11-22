@@ -1,142 +1,224 @@
-import { useState, useEffect, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import MessageBubble from './MessageBubble'
-import InputBox from './InputBox'
-import TypingIndicator from './TypingIndicator'
-import { useCart } from '../context/CartContext'
-import axios from 'axios'
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import MessageBubble from "./MessageBubble";
+import InputBox from "./InputBox";
+import TypingIndicator from "./TypingIndicator";
+import { useCart } from "../context/CartContext";
+import axios from "axios";
 
 const ChatContainer = ({ darkMode }) => {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      type: 'bot',
-      text: "Hello! Welcome to Royal Spice Kitchen! 👋\n\nI'm your AI assistant. How can I help you today?\n\nI can help you with:\n• Browse our delicious menu 🍛\n• Place orders 🛒\n• Make reservations 📅\n• Answer your questions ❓",
-      timestamp: new Date()
-    }
-  ])
-  const [isTyping, setIsTyping] = useState(false)
-  const [isThinking, setIsThinking] = useState(false)
-  const [sessionId] = useState(() => `session-${Date.now()}`)
-  const messagesEndRef = useRef(null)
+      type: "bot",
+      text: `Hello! Welcome to Royal Spice Kitchen! 👋
 
-  const { addToCartWithQuantity, setIsCartOpen } = useCart()
+I'm your AI assistant. How can I help you today?
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
+I can help you with:
+• Browse our delicious menu 🍛
+• Place orders 🛒
+• Make reservations 📅
+• Answer your questions ❓`,
+      timestamp: new Date(),
+    },
+  ]);
+
+  const [isTyping, setIsTyping] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  const {
+    cartItems,
+    cartTotal,
+    addToCartWithQuantity,
+    setIsCartOpen,
+    clearCart,
+    triggerOrderSuccess,
+    orderSuccess,
+  } = useCart();
+
+  // Reset chat session when order is placed
+  const [sessionId, setSessionId] = useState(() => `session-${Date.now()}`);
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages, isTyping])
+    if (orderSuccess) {
+      setSessionId(`session-${Date.now()}`);
+      console.log("[CHAT] Order completed - resetting session");
 
-  // Handle adding items to cart from chat
-  const handleCartAction = (cartItems) => {
-    console.log('[DEBUG] Adding to cart:', cartItems)
+      // Add order confirmation message to chat
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now(),
+          type: "bot",
+          text: "🎉 Your order has been placed successfully!\n\nThank you for ordering with us. Your delicious food is being prepared!\n\nWould you like to order something else?",
+          timestamp: new Date(),
+        }
+      ]);
+    }
+  }, [orderSuccess]);
 
-    if (cartItems && cartItems.length > 0) {
-      cartItems.forEach(item => {
-        // Add item with specified quantity
-        addToCartWithQuantity({
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isTyping]);
+
+  const getCartSummary = () => {
+    if (cartItems.length === 0) return "Cart is empty.";
+    const items = cartItems.map(item =>
+      `${item.quantity}x ${item.name} @ ₹${item.price}`
+    ).join(", ");
+    return `Current cart: ${items}. Total: ₹${cartTotal}`;
+  };
+
+  const isCartRelatedMessage = (text) => {
+    const lower = text.toLowerCase();
+    const cartKeywords = [
+      'cart', 'checkout', 'check out', 'total', 'bill', 'pay', 'payment',
+      'confirm', 'place order', 'place my order', 'what did i order',
+      'my order', 'summary', 'proceed', 'finalize', 'complete order',
+      'view cart', 'show cart', 'see cart', 'what\'s in my cart',
+      'ready to order', 'done ordering', 'that\'s all', 'thats all'
+    ];
+    return cartKeywords.some(kw => lower.includes(kw));
+  };
+
+  const handleAddToCart = (items) => {
+    if (!items || items.length === 0) return;
+
+    console.log("[CHAT] Adding items to cart:", items);
+
+    items.forEach(item => {
+      const price = parseFloat(item.price) || 0;
+      const quantity = parseInt(item.quantity) || 1;
+
+      addToCartWithQuantity(
+        {
           id: item.id,
           name: item.name,
-          price: item.price,
-          description: item.description || ''
-        }, item.quantity)
-      })
+          price: price,
+          description: item.description || ""
+        },
+        quantity
+      );
+    });
 
-      // Open cart drawer to show added items
-      setTimeout(() => {
-        setIsCartOpen(true)
-      }, 800)
-    }
-  }
+    setTimeout(() => setIsCartOpen(true), 300);
+  };
 
   const sendMessage = async (text) => {
-    // Add user message
     const userMessage = {
       id: Date.now(),
-      type: 'user',
+      type: "user",
       text,
-      timestamp: new Date()
-    }
-    setMessages(prev => [...prev, userMessage])
+      timestamp: new Date(),
+    };
 
-    // Show thinking indicator
-    setIsThinking(true)
+    setMessages((prev) => [...prev, userMessage]);
+    setIsThinking(true);
 
     try {
-      // Call API
-      const response = await axios.post('/api/v1/chat', {
-        message: text,
+      let messageToSend = text;
+      if (isCartRelatedMessage(text) && cartItems.length > 0) {
+        messageToSend = `${text}\n\n[ACTUAL CART: ${getCartSummary()}]`;
+      }
+
+      const response = await axios.post("/api/v1/chat", {
+        message: messageToSend,
         session_id: sessionId,
-        phone_number: '+1234567890'
-      })
+        phone_number: "+1234567890",
+        current_cart: cartItems,
+      });
 
-      console.log('[DEBUG] API Response:', response.data)
+      const data = response.data || {};
+      console.log("[CHAT RESPONSE]", data);
 
-      // Simulate typing delay
       setTimeout(() => {
-        setIsThinking(false)
-        setIsTyping(true)
-      }, 500)
+        setIsThinking(false);
+        setIsTyping(true);
+      }, 300);
 
-      // Add bot response with typing animation
       setTimeout(() => {
-        const responseData = response.data
-        const cartItems = responseData.data?.cart_items || []
+        const menuItems = data.menu_items || data.data?.menu_items || [];
+        const newCartItems = data.cart_items || data.data?.cart_items || [];
 
-        console.log('[DEBUG] Cart items from response:', cartItems)
+        let responseText = data.response || "I'm not sure how to respond to that.";
+
+        // Show actual cart for cart-related queries
+        if (isCartRelatedMessage(text) && cartItems.length > 0 && !newCartItems.length) {
+          const itemsList = cartItems.map(item =>
+            `• ${item.quantity}x ${item.name} @ ₹${item.price} = ₹${item.price * item.quantity}`
+          ).join("\n");
+
+          responseText = `Here's what's in your cart: 🛒\n\n${itemsList}\n\n💰 Subtotal: ₹${cartTotal}\n🚚 Delivery: ₹40\n\n**Total: ₹${cartTotal + 40}**\n\nReady to checkout? Click the cart icon to proceed!`;
+        }
+
+        // Empty cart message
+        if (isCartRelatedMessage(text) && cartItems.length === 0) {
+          responseText = "Your cart is empty! 🛒\n\nWould you like to browse our menu? Try saying:\n• 'Show me starters'\n• 'What biryanis do you have?'\n• 'Add 1 Butter Chicken'";
+        }
 
         const botMessage = {
           id: Date.now() + 1,
-          type: 'bot',
-          text: responseData.response,
-          intent: responseData.intent,
-          action: responseData.action,
-          orderId: responseData.order_id,
-          reservationId: responseData.reservation_id,
-          menuItems: responseData.data?.menu_items || [],
-          cartItems: cartItems,
-          timestamp: new Date()
-        }
-        setMessages(prev => [...prev, botMessage])
-        setIsTyping(false)
+          type: "bot",
+          text: responseText,
+          intent: data.intent,
+          action: data.action,
+          orderId: data.order_id,
+          reservationId: data.reservation_id,
+          menuItems,
+          cartItems: newCartItems,
+          timestamp: new Date(),
+        };
 
-        // Handle cart action if items were extracted
-        if (cartItems.length > 0) {
-          handleCartAction(cartItems)
+        setMessages((prev) => [...prev, botMessage]);
+        setIsTyping(false);
+
+        // Only add to cart if NOT a checkout query
+        if (newCartItems.length > 0 && !isCartRelatedMessage(text)) {
+          handleAddToCart(newCartItems);
         }
-      }, 1500)
+
+        // Order created via chat
+        if (data.action === "order_created" && data.order_id) {
+          triggerOrderSuccess(data.order_id);
+          clearCart();
+          setIsCartOpen(true);
+        }
+
+      }, 1100);
 
     } catch (error) {
-      console.error('[ERROR] Chat error:', error)
-      setIsThinking(false)
-      setIsTyping(false)
+      console.error("[CHAT ERROR]:", error);
+      setIsThinking(false);
+      setIsTyping(false);
 
-      const errorMessage = {
-        id: Date.now() + 1,
-        type: 'bot',
-        text: "I'm sorry, I'm having trouble connecting right now. Please try again in a moment.",
-        timestamp: new Date()
-      }
-      setMessages(prev => [...prev, errorMessage])
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          type: "bot",
+          text: "I'm having trouble right now. Please try again.",
+          timestamp: new Date(),
+        },
+      ]);
     }
-  }
+  };
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Messages Area */}
-      <div className={`flex-1 overflow-y-auto px-4 py-6 space-y-4 ${
-        darkMode ? 'bg-gray-900' : 'bg-gray-50'
-      }`}>
+      <div
+        className={`flex-1 overflow-y-auto px-4 py-6 space-y-4 mx-2 rounded-lg ${
+          darkMode ? "bg-gray-900" : "bg-gray-50"
+        }`}
+      >
         <AnimatePresence>
-          {messages.map((message) => (
-            <MessageBubble
-              key={message.id}
-              message={message}
-              darkMode={darkMode}
-            />
+          {messages.map((msg) => (
+            <MessageBubble key={msg.id} message={msg} darkMode={darkMode} />
           ))}
         </AnimatePresence>
 
@@ -144,22 +226,14 @@ const ChatContainer = ({ darkMode }) => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="flex items-center gap-2"
+            className="flex items-center"
           >
-            <div className={`px-4 py-3 rounded-2xl ${
-              darkMode ? 'bg-gray-800' : 'bg-white'
-            } shadow-lg`}>
-              <div className="flex items-center gap-2">
-                <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  💭 Thinking
-                </span>
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full thinking-pulse"></div>
-                  <div className="w-2 h-2 bg-orange-500 rounded-full thinking-pulse" style={{ animationDelay: '0.3s' }}></div>
-                  <div className="w-2 h-2 bg-orange-500 rounded-full thinking-pulse" style={{ animationDelay: '0.6s' }}></div>
-                </div>
-              </div>
+            <div
+              className={`px-4 py-3 rounded-2xl shadow-lg ${
+                darkMode ? "bg-gray-800 text-gray-300" : "bg-white text-gray-700"
+              }`}
+            >
+              💭 Thinking...
             </div>
           </motion.div>
         )}
@@ -169,10 +243,13 @@ const ChatContainer = ({ darkMode }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
-      <InputBox darkMode={darkMode} onSend={sendMessage} disabled={isTyping || isThinking} />
+      <InputBox
+        darkMode={darkMode}
+        onSend={sendMessage}
+        disabled={isTyping || isThinking}
+      />
     </div>
-  )
-}
+  );
+};
 
-export default ChatContainer
+export default ChatContainer;

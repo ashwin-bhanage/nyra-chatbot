@@ -56,104 +56,154 @@ def seed_real_menu():
 
     menu_items = [
 
-        # ========== SOUPS -> mapped to APPETIZER ==========
-        MenuItem(name="Tamatar Shorba", description="Mildly spiced tomato soup.", category=MenuCategory.APPETIZER, price=80, is_available=True, image_url=None),
-        MenuItem(name="Dal Soup", description="Lightly seasoned lentil broth.", category=MenuCategory.APPETIZER, price=90, is_available=True, image_url=None),
-        MenuItem(name="Manchow Soup (Veg/Chicken)", description="Thick soup with crispy noodles - veg or chicken.", category=MenuCategory.APPETIZER, price=120, is_available=True, image_url=None),
-        MenuItem(name="Hot & Sour Soup (Veg/Chicken)", description="Spicy and tangy broth - veg or chicken.", category=MenuCategory.APPETIZER, price=120, is_available=True, image_url=None),
-        MenuItem(name="Sweet Corn Soup (Veg/Chicken)", description="Light, creamy soup with sweet corn - veg or chicken.", category=MenuCategory.APPETIZER, price=120, is_available=True, image_url=None),
+    # =====================================================================
+    # 🥣 SOUPS (STARTERS / APPETIZERS)
+    # =====================================================================
+    MenuItem(name="Tomato Shorba", description="Mildly spiced tomato broth.", category=MenuCategory.APPETIZER, price=80, is_available=True),
+    MenuItem(name="Dal Shorba", description="Rich lentil soup.", category=MenuCategory.APPETIZER, price=90, is_available=True),
+    MenuItem(name="Veg Manchow Soup", description="Hot Indo-Chinese soup with crispy noodles.", category=MenuCategory.APPETIZER, price=120, is_available=True),
+    MenuItem(name="Chicken Manchow Soup", description="Manchow soup with shredded chicken.", category=MenuCategory.APPETIZER, price=140, is_available=True),
+    MenuItem(name="Veg Hot & Sour Soup", description="Tangy spicy soup with vegetables.", category=MenuCategory.APPETIZER, price=120, is_available=True),
+    MenuItem(name="Chicken Hot & Sour Soup", description="Hot and sour chicken broth.", category=MenuCategory.APPETIZER, price=150, is_available=True),
+    MenuItem(name="Sweet Corn Veg Soup", description="Mild creamy sweet corn soup.", category=MenuCategory.APPETIZER, price=110, is_available=True),
+    MenuItem(name="Sweet Corn Chicken Soup", description="Chicken and sweetcorn soup.", category=MenuCategory.APPETIZER, price=130, is_available=True),
 
-        # ========== APPETIZERS_INDIAN -> APPETIZER ==========
-        MenuItem(name="Paneer Tikka (Malai/Achari)", description="Creamy or pickled-spice marinated cottage cheese.", category=MenuCategory.APPETIZER, price=240, is_available=True, image_url=None),
-        MenuItem(name="Tandoori Aloo", description="Spiced potatoes grilled in the tandoor.", category=MenuCategory.APPETIZER, price=140, is_available=True, image_url=None),
-        MenuItem(name="Vegetable Samosa (2 pcs)", description="Flaky pastry with spiced potato and peas.", category=MenuCategory.APPETIZER, price=50, is_available=True, image_url=None),
-        MenuItem(name="Onion Bhaji / Vegetable Pakora", description="Assorted vegetable fritters.", category=MenuCategory.APPETIZER, price=80, is_available=True, image_url=None),
-        MenuItem(name="Aloo Tikki Chaat", description="Spiced potato patty with chutneys and yogurt.", category=MenuCategory.APPETIZER, price=110, is_available=True, image_url=None),
-        MenuItem(name="Hara Bhara Kebab", description="Spinach and vegetable patties.", category=MenuCategory.APPETIZER, price=150, is_available=True, image_url=None),
-        MenuItem(name="Dahi Ke Kebab", description="Crispy hung curd patties.", category=MenuCategory.APPETIZER, price=170, is_available=True, image_url=None),
-        MenuItem(name="Tandoori Chicken (Half)", description="Classic yogurt-marinated chicken pieces.", category=MenuCategory.APPETIZER, price=280, is_available=True, image_url=None),
-        MenuItem(name="Chicken Tikka (Classic/Pahadi)", description="Boneless chicken with standard or green herb marinade.", category=MenuCategory.APPETIZER, price=260, is_available=True, image_url=None),
-        MenuItem(name="Mutton Seekh Kebab", description="Spiced minced lamb/grilled on skewers.", category=MenuCategory.APPETIZER, price=320, is_available=True, image_url=None),
-        MenuItem(name="Amritsari Fish Fry", description="Crispy, tangy fish fritters.", category=MenuCategory.APPETIZER, price=280, is_available=True, image_url=None),
-        MenuItem(name="Chicken 65", description="Spicy South Indian style dry chicken.", category=MenuCategory.APPETIZER, price=230, is_available=True, image_url=None),
+    # =====================================================================
+    # 🧆 VEG STARTERS
+    # =====================================================================
+    MenuItem(name="Paneer Tikka (Malai/Achari)", description="Marinated grilled cottage cheese.", category=MenuCategory.APPETIZER, price=240, is_available=True),
+    MenuItem(name="Tandoori Aloo", description="Roasted potatoes with spices.", category=MenuCategory.APPETIZER, price=150, is_available=True),
+    MenuItem(name="Veg Seekh Kebab", description="Minced vegetable kebabs.", category=MenuCategory.APPETIZER, price=150, is_available=True),
+    MenuItem(name="Veg Pakora", description="Fritters made with mixed vegetables.", category=MenuCategory.APPETIZER, price=90, is_available=True),
+    MenuItem(name="Paneer Pakora", description="Deep-fried paneer fritters.", category=MenuCategory.APPETIZER, price=130, is_available=True),
+    MenuItem(name="Aloo Tikki Chaat", description="Crispy tikki with chutneys.", category=MenuCategory.APPETIZER, price=110, is_available=True),
+    MenuItem(name="Hara Bhara Kebab", description="Green peas-spinach kebabs.", category=MenuCategory.APPETIZER, price=160, is_available=True),
+    MenuItem(name="Dahi Ke Kebab", description="Yogurt-based creamy kebabs.", category=MenuCategory.APPETIZER, price=180, is_available=True),
+    MenuItem(name="Samosa (2 pcs)", description="Fried pastry with potato filling.", category=MenuCategory.APPETIZER, price=40, is_available=True),
+    MenuItem(name="Corn Cheese Balls", description="Cheesy corn-filled fried balls.", category=MenuCategory.APPETIZER, price=130, is_available=True),
+    MenuItem(name="Tandoori Mushroom", description="Spicy marinated mushroom tikka.", category=MenuCategory.APPETIZER, price=180, is_available=True),
 
-        # ========== INDO-CHINESE / FUSION -> MAIN (or APPETIZER for starters) ==========
-        MenuItem(name="Chilli Paneer (Dry)", description="Paneer tossed with bell peppers and chilli sauce.", category=MenuCategory.MAIN, price=220, is_available=True, image_url=None),
-        MenuItem(name="Gobi Manchurian (Dry)", description="Crispy cauliflower florets in Manchurian sauce.", category=MenuCategory.MAIN, price=200, is_available=True, image_url=None),
-        MenuItem(name="Crispy Chilli Potato", description="Shredded potatoes in sweet-spicy sauce.", category=MenuCategory.MAIN, price=180, is_available=True, image_url=None),
-        MenuItem(name="Chicken Lollipop", description="Battered and fried chicken drumettes.", category=MenuCategory.MAIN, price=260, is_available=True, image_url=None),
-        MenuItem(name="Vegetable Manchurian (Gravy)", description="Veg dumplings in a spiced brown sauce.", category=MenuCategory.MAIN, price=200, is_available=True, image_url=None),
-        MenuItem(name="Chilli Chicken (Gravy)", description="Chicken in a thick, spicy sauce.", category=MenuCategory.MAIN, price=260, is_available=True, image_url=None),
-        MenuItem(name="Veg/Chicken in Hot Garlic Sauce", description="Choice of veg or chicken in pungent garlic sauce.", category=MenuCategory.MAIN, price=250, is_available=True, image_url=None),
-        MenuItem(name="Vegetable Hakka Noodles", description="Stir-fried noodles with crisp veggies.", category=MenuCategory.MAIN, price=160, is_available=True, image_url=None),
-        MenuItem(name="Chicken Schezwan Noodles", description="Fiery noodles tossed in Schezwan sauce.", category=MenuCategory.MAIN, price=200, is_available=True, image_url=None),
-        MenuItem(name="Vegetable Fried Rice", description="Classic stir-fried rice.", category=MenuCategory.MAIN, price=150, is_available=True, image_url=None),
-        MenuItem(name="Egg/Chicken Schezwan Fried Rice", description="Fried rice with egg or chicken and Schezwan sauce.", category=MenuCategory.MAIN, price=180, is_available=True, image_url=None),
+    # =====================================================================
+    # 🍗 NON-VEG STARTERS
+    # =====================================================================
+    MenuItem(name="Chicken Tikka", description="Boneless chicken grilled with spices.", category=MenuCategory.APPETIZER, price=260, is_available=True),
+    MenuItem(name="Chicken 65", description="Crispy spicy fried chicken bites.", category=MenuCategory.APPETIZER, price=230, is_available=True),
+    MenuItem(name="Tandoori Chicken (Half)", description="Classic tandoor roasted chicken.", category=MenuCategory.APPETIZER, price=280, is_available=True),
+    MenuItem(name="Mutton Seekh Kebab", description="Juicy minced lamb kebabs.", category=MenuCategory.APPETIZER, price=330, is_available=True),
+    MenuItem(name="Amritsari Fish Fry", description="Spicy fried fish with gram flour.", category=MenuCategory.APPETIZER, price=300, is_available=True),
+    MenuItem(name="Chicken Lollipop", description="Crispy chicken drumettes.", category=MenuCategory.APPETIZER, price=260, is_available=True),
+    MenuItem(name="Prawn Koliwada", description="Crispy, tangy fried prawns.", category=MenuCategory.APPETIZER, price=360, is_available=True),
 
-        # ========== MAIN COURSE - VEG -> MAIN ==========
-        MenuItem(name="Paneer Butter Masala", description="Cottage cheese in a rich, creamy tomato sauce.", category=MenuCategory.MAIN, price=240, is_available=True, image_url=None),
-        MenuItem(name="Shahi Paneer", description="Paneer in a mild, cashew-cream gravy.", category=MenuCategory.MAIN, price=260, is_available=True, image_url=None),
-        MenuItem(name="Palak Paneer", description="Paneer in creamy spinach gravy.", category=MenuCategory.MAIN, price=220, is_available=True, image_url=None),
-        MenuItem(name="Malai Kofta", description="Vegetable/paneer dumplings in a cream sauce.", category=MenuCategory.MAIN, price=240, is_available=True, image_url=None),
-        MenuItem(name="Bhendi Masala", description="Okra sautéed with spices.", category=MenuCategory.MAIN, price=160, is_available=True, image_url=None),
-        MenuItem(name="Navratan Korma", description="Mixed vegetables in a mild, creamy sauce.", category=MenuCategory.MAIN, price=220, is_available=True, image_url=None),
-        MenuItem(name="Aloo Gobi Adraki", description="Potato and cauliflower with ginger.", category=MenuCategory.MAIN, price=150, is_available=True, image_url=None),
-        MenuItem(name="Veg Kolhapuri", description="Fiery, spicy, thick gravy (Western India).", category=MenuCategory.MAIN, price=200, is_available=True, image_url=None),
+    # =====================================================================
+    # 🍜 INDO-CHINESE (MAINS)
+    # =====================================================================
+    MenuItem(name="Veg Spring Rolls", description="Crispy vegetable rolls.", category=MenuCategory.MAIN, price=150, is_available=True),
+    MenuItem(name="Chicken Spring Rolls", description="Crispy chicken rolls.", category=MenuCategory.MAIN, price=180, is_available=True),
 
-        # ========== MAIN COURSE - NON-VEG -> MAIN ==========
-        MenuItem(name="Butter Chicken (Murgh Makhani)", description="Tandoori chicken in a sweet and tangy cream sauce.", category=MenuCategory.MAIN, price=300, is_available=True, image_url=None),
-        MenuItem(name="Chicken Tikka Masala", description="Grilled chicken in spiced tomato and onion gravy.", category=MenuCategory.MAIN, price=280, is_available=True, image_url=None),
-        MenuItem(name="Kadai Chicken", description="Chicken cooked with capsicum, onion, and coarse spices.", category=MenuCategory.MAIN, price=260, is_available=True, image_url=None),
-        MenuItem(name="Rogan Josh (Lamb/Goat)", description="Fragrant Kashmiri aromatic curry.", category=MenuCategory.MAIN, price=380, is_available=True, image_url=None),
-        MenuItem(name="Laal Maas", description="Fiery Rajasthani mutton curry.", category=MenuCategory.MAIN, price=380, is_available=True, image_url=None),
-        MenuItem(name="Prawn Korma / Curry", description="Prawns in a rich, mild or spiced sauce.", category=MenuCategory.MAIN, price=340, is_available=True, image_url=None),
-        MenuItem(name="Vindaloo (Chicken/Lamb)", description="Goan, spicy, and tangy curry with vinegar.", category=MenuCategory.MAIN, price=320, is_available=True, image_url=None),
-        MenuItem(name="Malabar Fish Curry", description="Fish cooked in coconut milk (South Indian style).", category=MenuCategory.MAIN, price=300, is_available=True, image_url=None),
+    MenuItem(name="Chilli Paneer Dry", description="Paneer tossed in chilli sauce.", category=MenuCategory.MAIN, price=220, is_available=True),
+    MenuItem(name="Chilli Chicken Dry", description="Fried chicken tossed in chilli sauce.", category=MenuCategory.MAIN, price=260, is_available=True),
+    MenuItem(name="Gobi Manchurian Dry", description="Crispy cauliflower in Manchurian sauce.", category=MenuCategory.MAIN, price=200, is_available=True),
+    MenuItem(name="Chicken Manchurian", description="Chicken balls in brown gravy.", category=MenuCategory.MAIN, price=260, is_available=True),
 
-        # ========== DALS AND LEGUMES -> MAIN ==========
-        MenuItem(name="Dal Makhani", description="Slow-cooked black lentils with cream and butter.", category=MenuCategory.MAIN, price=180, is_available=True, image_url=None),
-        MenuItem(name="Yellow Dal Tadka", description="Tempered pigeon pea lentils.", category=MenuCategory.MAIN, price=140, is_available=True, image_url=None),
-        MenuItem(name="Rajma Masala", description="Red kidney beans curry.", category=MenuCategory.MAIN, price=160, is_available=True, image_url=None),
-        MenuItem(name="Chole Bhature", description="Chickpea curry served with large, fried bread.", category=MenuCategory.MAIN, price=160, is_available=True, image_url=None),
+    MenuItem(name="Veg Fried Rice", description="Chinese-style fried rice.", category=MenuCategory.MAIN, price=150, is_available=True),
+    MenuItem(name="Egg Fried Rice", description="Rice tossed with eggs.", category=MenuCategory.MAIN, price=160, is_available=True),
+    MenuItem(name="Chicken Fried Rice", description="Fried rice with shredded chicken.", category=MenuCategory.MAIN, price=180, is_available=True),
+    MenuItem(name="Schezwan Veg Fried Rice", description="Spicy red fried rice.", category=MenuCategory.MAIN, price=170, is_available=True),
+    MenuItem(name="Schezwan Chicken Fried Rice", description="Fiery fried rice with chicken.", category=MenuCategory.MAIN, price=210, is_available=True),
 
-        # ========== RICE AND BIRYANI -> MAIN ==========
-        MenuItem(name="Basmati Rice (Steamed)", description="Plain steamed rice.", category=MenuCategory.MAIN, price=80, is_available=True, image_url=None),
-        MenuItem(name="Jeera Rice", description="Rice tempered with cumin seeds and ghee.", category=MenuCategory.MAIN, price=110, is_available=True, image_url=None),
-        MenuItem(name="Matar Pulao", description="Rice with green peas.", category=MenuCategory.MAIN, price=140, is_available=True, image_url=None),
-        MenuItem(name="Kashmiri Pulao", description="Sweet pulao with nuts and fruits.", category=MenuCategory.MAIN, price=200, is_available=True, image_url=None),
-        MenuItem(name="Vegetable Dum Biryani", description="Layered, spiced rice with vegetables.", category=MenuCategory.MAIN, price=220, is_available=True, image_url=None),
-        MenuItem(name="Chicken Dum Biryani", description="Layered, spiced rice with chicken.", category=MenuCategory.MAIN, price=260, is_available=True, image_url=None),
-        MenuItem(name="Mutton Dum Biryani", description="Layered, spiced rice with mutton.", category=MenuCategory.MAIN, price=350, is_available=True, image_url=None),
+    MenuItem(name="Veg Hakka Noodles", description="Stir-fried noodles with vegetables.", category=MenuCategory.MAIN, price=160, is_available=True),
+    MenuItem(name="Chicken Hakka Noodles", description="Noodles with chicken strips.", category=MenuCategory.MAIN, price=200, is_available=True),
+    MenuItem(name="Schezwan Noodles", description="Spicy Indo-Chinese noodles.", category=MenuCategory.MAIN, price=180, is_available=True),
+    MenuItem(name="Schezwan Chicken Noodles", description="Fiery red chicken noodles.", category=MenuCategory.MAIN, price=220, is_available=True),
 
-        # ========== INDIAN BREADS -> MAIN (we map breads to MAIN) ==========
-        MenuItem(name="Plain Naan", description="Leavened bread baked in Tandoor.", category=MenuCategory.MAIN, price=30, is_available=True, image_url=None),
-        MenuItem(name="Butter Naan", description="Naan brushed with butter.", category=MenuCategory.MAIN, price=40, is_available=True, image_url=None),
-        MenuItem(name="Garlic Naan", description="Naan with fresh garlic.", category=MenuCategory.MAIN, price=50, is_available=True, image_url=None),
-        MenuItem(name="Tandoori Roti", description="Whole wheat bread baked in Tandoor.", category=MenuCategory.MAIN, price=25, is_available=True, image_url=None),
-        MenuItem(name="Tawa Roti / Chapati", description="Plain whole wheat bread (pan-cooked).", category=MenuCategory.MAIN, price=20, is_available=True, image_url=None),
-        MenuItem(name="Lachha Paratha", description="Flaky layered whole wheat bread.", category=MenuCategory.MAIN, price=60, is_available=True, image_url=None),
-        MenuItem(name="Aloo Paratha", description="Whole wheat bread stuffed with spiced potato.", category=MenuCategory.MAIN, price=80, is_available=True, image_url=None),
-        MenuItem(name="Keema Naan", description="Naan stuffed with spiced minced meat.", category=MenuCategory.MAIN, price=120, is_available=True, image_url=None),
-        MenuItem(name="Peshwari Naan", description="Sweet naan with nut/raisin filling.", category=MenuCategory.MAIN, price=100, is_available=True, image_url=None),
+    MenuItem(name="Veg Manchurian Gravy", description="Veg dumplings in gravy.", category=MenuCategory.MAIN, price=200, is_available=True),
+    MenuItem(name="Chicken Chilli Garlic", description="Chicken in garlic-chilli sauce.", category=MenuCategory.MAIN, price=260, is_available=True),
 
-        # ========== DESSERTS -> DESSERT ==========
-        MenuItem(name="Gulab Jamun (Hot)", description="Deep-fried milk solids in sugar syrup (served warm).", category=MenuCategory.DESSERT, price=60, is_available=True, image_url=None),
-        MenuItem(name="Gajar Ka Halwa (Hot)", description="Slow-cooked carrot pudding (served warm).", category=MenuCategory.DESSERT, price=90, is_available=True, image_url=None),
-        MenuItem(name="Jalebi with Rabri", description="Crispy coils with thickened milk.", category=MenuCategory.DESSERT, price=80, is_available=True, image_url=None),
-        MenuItem(name="Ras Malai", description="Chilled saffron-milk cheese patties.", category=MenuCategory.DESSERT, price=90, is_available=True, image_url=None),
-        MenuItem(name="Kulfi (Pista/Malai/Mango)", description="Traditional frozen dairy dessert.", category=MenuCategory.DESSERT, price=80, is_available=True, image_url=None),
-        MenuItem(name="Ice Cream (Vanilla/Chocolate)", description="Basic ice cream scoops.", category=MenuCategory.DESSERT, price=60, is_available=True, image_url=None),
+    # =====================================================================
+    # 🍛 MAIN COURSE – VEG
+    # =====================================================================
+    MenuItem(name="Paneer Butter Masala", description="Creamy tomato-based paneer curry.", category=MenuCategory.MAIN, price=240, is_available=True),
+    MenuItem(name="Paneer Lababdar", description="Rich and thick gravy paneer.", category=MenuCategory.MAIN, price=250, is_available=True),
+    MenuItem(name="Kadhai Paneer", description="Paneer with capsicum & spices.", category=MenuCategory.MAIN, price=240, is_available=True),
+    MenuItem(name="Shahi Paneer", description="Paneer simmered in cashew gravy.", category=MenuCategory.MAIN, price=260, is_available=True),
+    MenuItem(name="Palak Paneer", description="Paneer in creamy spinach gravy.", category=MenuCategory.MAIN, price=220, is_available=True),
+    MenuItem(name="Matar Paneer", description="Green peas & paneer curry.", category=MenuCategory.MAIN, price=200, is_available=True),
+    MenuItem(name="Malai Kofta", description="Rich kofta in creamy gravy.", category=MenuCategory.MAIN, price=240, is_available=True),
+    MenuItem(name="Navratan Korma", description="Mixed veg in sweet mild gravy.", category=MenuCategory.MAIN, price=220, is_available=True),
+    MenuItem(name="Veg Kolhapuri", description="Spicy thick Maharashtrian curry.", category=MenuCategory.MAIN, price=200, is_available=True),
+    MenuItem(name="Mix Veg Curry", description="Classic mixed vegetable curry.", category=MenuCategory.MAIN, price=180, is_available=True),
+    MenuItem(name="Baingan Bharta", description="Smoky roasted eggplant mash.", category=MenuCategory.MAIN, price=180, is_available=True),
+    MenuItem(name="Dum Aloo Kashmiri", description="Baby potatoes in rich gravy.", category=MenuCategory.MAIN, price=200, is_available=True),
+    MenuItem(name="Chole Masala", description="Punjabi-style chickpeas.", category=MenuCategory.MAIN, price=150, is_available=True),
 
-        # ========== BEVERAGES -> BEVERAGE ==========
-        MenuItem(name="Masala Chai", description="Hot spiced Indian tea.", category=MenuCategory.BEVERAGE, price=30, is_available=True, image_url=None),
-        MenuItem(name="Indian Filter Coffee", description="South Indian style coffee.", category=MenuCategory.BEVERAGE, price=40, is_available=True, image_url=None),
-        MenuItem(name="Mango Lassi", description="Sweet and thick yogurt drink.", category=MenuCategory.BEVERAGE, price=110, is_available=True, image_url=None),
-        MenuItem(name="Sweet/Salted Lassi", description="Traditional yogurt drink.", category=MenuCategory.BEVERAGE, price=80, is_available=True, image_url=None),
-        MenuItem(name="Buttermilk (Chaas)", description="Spiced, thin yogurt drink.", category=MenuCategory.BEVERAGE, price=60, is_available=True, image_url=None),
-        MenuItem(name="Fresh Lime Soda (Sweet/Salt)", description="Simple lime cooler.", category=MenuCategory.BEVERAGE, price=50, is_available=True, image_url=None),
-        MenuItem(name="Jal Jeera", description="Tangy, cumin-based cooler.", category=MenuCategory.BEVERAGE, price=60, is_available=True, image_url=None),
+    # =====================================================================
+    # 🍗 MAIN COURSE – NON-VEG
+    # =====================================================================
+    MenuItem(name="Butter Chicken", description="Creamy tomato chicken curry.", category=MenuCategory.MAIN, price=300, is_available=True),
+    MenuItem(name="Chicken Curry (Home Style)", description="Traditional Indian chicken curry.", category=MenuCategory.MAIN, price=240, is_available=True),
+    MenuItem(name="Kadai Chicken", description="Chicken cooked with onions & capsicum.", category=MenuCategory.MAIN, price=260, is_available=True),
+    MenuItem(name="Chicken Tikka Masala", description="Chicken tikka in spicy masala gravy.", category=MenuCategory.MAIN, price=280, is_available=True),
+    MenuItem(name="Pepper Chicken", description="South Indian pepper chicken.", category=MenuCategory.MAIN, price=260, is_available=True),
+    MenuItem(name="Egg Curry", description="Boiled eggs in masala gravy.", category=MenuCategory.MAIN, price=160, is_available=True),
+    MenuItem(name="Mutton Curry", description="Slow-cooked mutton curry.", category=MenuCategory.MAIN, price=380, is_available=True),
+    MenuItem(name="Rogan Josh", description="Kashmiri aromatic lamb curry.", category=MenuCategory.MAIN, price=380, is_available=True),
+    MenuItem(name="Prawn Curry", description="Prawns cooked in coconut gravy.", category=MenuCategory.MAIN, price=340, is_available=True),
 
-    ]
+    # =====================================================================
+    # 🍚 RICE & BIRYANI
+    # =====================================================================
+    MenuItem(name="Steamed Rice", description="Plain basmati rice.", category=MenuCategory.MAIN, price=80, is_available=True),
+    MenuItem(name="Jeera Rice", description="Cumin-flavoured rice.", category=MenuCategory.MAIN, price=110, is_available=True),
+    MenuItem(name="Veg Pulao", description="Flavoured rice with vegetables.", category=MenuCategory.MAIN, price=140, is_available=True),
+    MenuItem(name="Kashmiri Pulao", description="Sweet aromatic pulao.", category=MenuCategory.MAIN, price=200, is_available=True),
+
+    MenuItem(name="Veg Biryani", description="Aromatic dum biryani.", category=MenuCategory.MAIN, price=200, is_available=True),
+    MenuItem(name="Egg Biryani", description="Biryani with boiled eggs.", category=MenuCategory.MAIN, price=180, is_available=True),
+    MenuItem(name="Chicken Biryani", description="Hyderabadi dum biryani.", category=MenuCategory.MAIN, price=260, is_available=True),
+    MenuItem(name="Mutton Biryani", description="Rich and spicy mutton biryani.", category=MenuCategory.MAIN, price=350, is_available=True),
+
+    # =====================================================================
+    # 🍞 INDIAN BREADS
+    # =====================================================================
+    MenuItem(name="Tandoori Roti", description="Whole wheat tandoor roti.", category=MenuCategory.MAIN, price=20, is_available=True),
+    MenuItem(name="Butter Roti", description="Tandoori roti brushed with butter.", category=MenuCategory.MAIN, price=25, is_available=True),
+    MenuItem(name="Plain Naan", description="Classic tandoor-baked naan.", category=MenuCategory.MAIN, price=30, is_available=True),
+    MenuItem(name="Butter Naan", description="Soft naan brushed with butter.", category=MenuCategory.MAIN, price=40, is_available=True),
+    MenuItem(name="Garlic Naan", description="Naan topped with garlic.", category=MenuCategory.MAIN, price=50, is_available=True),
+    MenuItem(name="Lachha Paratha", description="Layered whole wheat paratha.", category=MenuCategory.MAIN, price=60, is_available=True),
+    MenuItem(name="Aloo Paratha", description="Potato-stuffed paratha.", category=MenuCategory.MAIN, price=80, is_available=True),
+    MenuItem(name="Paneer Paratha", description="Stuffed paratha with paneer.", category=MenuCategory.MAIN, price=100, is_available=True),
+    MenuItem(name="Cheese Naan", description="Cheese-stuffed naan.", category=MenuCategory.MAIN, price=120, is_available=True),
+
+    # =====================================================================
+    # 🍨 DESSERTS
+    # =====================================================================
+    MenuItem(name="Gulab Jamun (2 pcs)", description="Warm deep-fried sweet dumplings.", category=MenuCategory.DESSERT, price=60, is_available=True),
+    MenuItem(name="Gajar Ka Halwa", description="Carrot halwa slow cooked in ghee.", category=MenuCategory.DESSERT, price=90, is_available=True),
+    MenuItem(name="Jalebi with Rabri", description="Crispy jalebi topped with rabri.", category=MenuCategory.DESSERT, price=80, is_available=True),
+    MenuItem(name="Ras Malai", description="Soft chenna patties in sweet milk.", category=MenuCategory.DESSERT, price=90, is_available=True),
+    MenuItem(name="Kulfi (Pista/Malai/Mango)", description="Traditional frozen dessert.", category=MenuCategory.DESSERT, price=80, is_available=True),
+    MenuItem(name="Matka Kulfi", description="Kulfi served in a clay pot.", category=MenuCategory.DESSERT, price=100, is_available=True),
+    MenuItem(name="Rabri Falooda", description="Falooda topped with rabri.", category=MenuCategory.DESSERT, price=140, is_available=True),
+    MenuItem(name="Moong Dal Halwa", description="Rich halwa cooked in desi ghee.", category=MenuCategory.DESSERT, price=120, is_available=True),
+    MenuItem(name="Brownie with Ice Cream", description="Hot brownie with vanilla scoop.", category=MenuCategory.DESSERT, price=160, is_available=True),
+
+    # =====================================================================
+    # 🥤 BEVERAGES
+    # =====================================================================
+    MenuItem(name="Masala Chai", description="Indian spiced tea.", category=MenuCategory.BEVERAGE, price=30, is_available=True),
+    MenuItem(name="Filter Coffee", description="South Indian-style coffee.", category=MenuCategory.BEVERAGE, price=40, is_available=True),
+    MenuItem(name="Sweet Lassi", description="Classic Punjabi lassi.", category=MenuCategory.BEVERAGE, price=80, is_available=True),
+    MenuItem(name="Salted Lassi", description="Savory yogurt drink.", category=MenuCategory.BEVERAGE, price=80, is_available=True),
+    MenuItem(name="Mango Lassi", description="Thick mango yogurt drink.", category=MenuCategory.BEVERAGE, price=110, is_available=True),
+    MenuItem(name="Buttermilk (Chaas)", description="Refreshing chaas.", category=MenuCategory.BEVERAGE, price=60, is_available=True),
+    MenuItem(name="Fresh Lime Soda", description="Sweet or salted lime soda.", category=MenuCategory.BEVERAGE, price=50, is_available=True),
+    MenuItem(name="Cold Coffee", description="Creamy iced coffee.", category=MenuCategory.BEVERAGE, price=120, is_available=True),
+    MenuItem(name="Orange Juice", description="Fresh orange juice.", category=MenuCategory.BEVERAGE, price=120, is_available=True),
+    MenuItem(name="Pineapple Juice", description="Fresh pineapple juice.", category=MenuCategory.BEVERAGE, price=120, is_available=True),
+
+]
+
 
     try:
         db.add_all(menu_items)

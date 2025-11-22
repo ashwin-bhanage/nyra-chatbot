@@ -1,75 +1,36 @@
 """
 Gemini AI Service - Handles all AI interactions
+(Cleaned & safe-fix: keeps structure, names)
 """
+
+import json
+import re
+from typing import Optional, Dict, Any
 
 import google.generativeai as genai
 from app.config import settings
-from typing import Optional, Dict, Any
-import json
-import re
 
-# Configure Gemini API
+# NOTE: switch model id to a supported one on your environment.
+# If you still see "model not found", replace with a model from your ListModels.
 genai.configure(api_key=settings.GEMINI_API_KEY)
-
-# Initialize the model
-# Using gemini-pro for text generation
 model = genai.GenerativeModel('gemini-2.5-flash')
 
 
 class GeminiService:
-    """Service class for Gemini AI interactions"""
-
     def __init__(self):
         self.model = model
         self.restaurant_context = self._build_restaurant_context()
 
     def _build_restaurant_context(self) -> str:
-        """
-        Build context about the restaurant
-        This is prepended to every conversation
-        """
-        context = f"""
+        return f"""
 You are an AI assistant for {settings.RESTAURANT_NAME}, a friendly restaurant chatbot.
-
 RESTAURANT INFORMATION:
 - Name: {settings.RESTAURANT_NAME}
 - Hours: {settings.RESTAURANT_HOURS}
-- Delivery: {'Available' if settings.DELIVERY_AVAILABLE else 'Not available'}
-
-YOUR ROLE:
-- Help customers browse the menu
-- Answer questions about food items
-- Assist with placing orders
-- Help with table reservations
-- Provide information about the restaurant
-
-PERSONALITY:
-- Be friendly, warm, and helpful
-- Use casual but professional language
-- Be concise but informative
-- Show enthusiasm about the food
-- Handle complaints gracefully
-
-CAPABILITIES:
-1. Show menu items by category (appetizer, main, dessert, beverage)
-2. Provide details about specific dishes
-3. Help customers place orders
-4. Make table reservations
-5. Answer FAQs about hours, delivery, payments
-
-IMPORTANT RULES:
-- Always be polite and customer-focused
-- If you don't know something, say so honestly
-- Don't make up prices or menu items
-- Suggest alternatives if something is unavailable
-- Confirm order details before finalizing
-
-CURRENCY RULE:
-- Always show prices in Indian Rupees using the ₹ symbol.
-- Never use the dollar sign ($) or other currency symbols in responses.
-- Format prices like: ₹180 or ₹250 (integers preferred).
+- Delivery: {"Available" if settings.DELIVERY_AVAILABLE else "Not available"}
+YOUR ROLE: Help customers browse the menu, place orders, and make reservations.
+PERSONALITY: Friendly, warm, concise, enthusiastic about food.
 """
-        return context
 
     async def generate_response(
         self,
@@ -78,45 +39,31 @@ CURRENCY RULE:
         chat_history: Optional[list] = None
     ) -> Dict[str, Any]:
         """
-        Generate AI response for user message
-
-        Args:
-            user_message: The user's message
-            menu_items: List of menu items (if relevant to query)
-            chat_history: Previous conversation messages
-
         Returns:
-            Dict with response, intent, and additional data
+            {"success": bool, "response": str, "intent": str, "error": Optional[str]}
         """
         try:
-            # Build the complete prompt
             prompt = self._build_prompt(user_message, menu_items, chat_history)
 
-            # Generate response from Gemini
+            # Model call - keep usage consistent with existing code
             response = self.model.generate_content(prompt)
 
-            # Extract intent from the message
+            # Support different return shapes
+            text = getattr(response, "text", None) or (response.get("text") if isinstance(response, dict) else None)
+            if not text or not text.strip():
+                raise ValueError("Empty response from model")
+
             intent = self._detect_intent(user_message)
 
-            # Ensure response uses ₹ (extra safety: replace accidental $ with ₹)
-            response_text = response.text if hasattr(response, 'text') else str(response)
-            # replace $n.nn patterns conservatively
-            response_text = re.sub(r"\$\s*([0-9]+(?:\.[0-9]+)?)", r"₹\1", response_text)
-            # replace any stray standalone $ signs
-            response_text = response_text.replace("$", "₹")
-
-            return {
-                "success": True,
-                "response": response_text,
-                "intent": intent,
-                "error": None
-            }
+            return {"success": True, "response": text.strip(), "intent": intent, "error": None}
 
         except Exception as e:
-            print(f"Gemini API Error: {str(e)}")
+            print("[ERROR] Gemini API Error:", str(e))
+            import traceback
+            traceback.print_exc()
             return {
                 "success": False,
-                "response": "I'm having trouble processing your request right now. Please try again in a moment.",
+                "response": "I'm having trouble right now. Please try again.",
                 "intent": "error",
                 "error": str(e)
             }
@@ -127,231 +74,243 @@ CURRENCY RULE:
         menu_items: Optional[list] = None,
         chat_history: Optional[list] = None
     ) -> str:
-        """Build the complete prompt for Gemini"""
+        parts = [self.restaurant_context]
 
-        prompt_parts = [self.restaurant_context]
-
-        # Add menu items if provided
         if menu_items:
-            menu_text = "\n\nAVAILABLE MENU ITEMS:\n"
+            menu_text_lines = ["\n\nAVAILABLE MENU ITEMS:"]
             for item in menu_items:
-                # Force price formatting to integer INR for the prompt
-                try:
-                    price_val = int(float(item.get('price', 0)))
-                except Exception:
-                    price_val = item.get('price', 0)
-                menu_text += (
-                    f"- {item.get('name')} (₹{price_val}): "
-                    f"{item.get('description', 'No description available')}\n"
-                )
-            prompt_parts.append(menu_text)
+                name = item.get("name", "Unknown")
+                price = item.get("price", "")
+                description = item.get("description", "")
+                menu_text_lines.append(f"- {name} — ₹{price}: {description}")
+            parts.append("\n".join(menu_text_lines))
 
-        # Add chat history for context
         if chat_history:
-            history_text = "\n\nCONVERSATION HISTORY:\n"
-            for msg in chat_history[-5:]:  # Last 5 messages for context
-                history_text += f"Customer: {msg['user_message']}\n"
-                history_text += f"You: {msg['bot_response']}\n"
-            prompt_parts.append(history_text)
+            history_lines = ["\n\nCONVERSATION HISTORY:"]
+            for msg in (chat_history[-5:] if len(chat_history) > 5 else chat_history):
+                user_msg = msg.get("user_message", "")
+                bot_msg = msg.get("bot_response", "")
+                history_lines.append(f"Customer: {user_msg}\nYou: {bot_msg}")
+            parts.append("\n".join(history_lines))
 
-        # Add current user message
-        prompt_parts.append(f"\n\nCUSTOMER'S CURRENT MESSAGE:\n{user_message}")
+        parts.append(f"\n\nCUSTOMER MESSAGE:\n{user_message}")
 
-        # Add response instructions
-        prompt_parts.append("""
+        if menu_items and self._detect_intent(user_message) == "menu_query":
+            parts.append(
+                "\n\nIMPORTANT:\n"
+                "- You MUST list the menu in bullet points.\n"
+                "- NEVER say you are having trouble.\n"
+                "- If menu_items exist, ALWAYS produce a list.\n"
+            )
+        else:
+            parts.append(
+                "\n\nIMPORTANT:\n"
+                "- NEVER respond with 'I'm having trouble right now. Please try again.'\n"
+                "- If you are unsure, ask the user a clarifying question.\n"
+            )
 
-RESPOND TO THE CUSTOMER:
-- Be natural and conversational
-- If they're asking about menu, show relevant items
-- If they want to order, guide them through the process
-- If they want to reserve, ask for date, time, and party size
-- Keep responses concise (2-4 sentences usually)
-- Always format prices in Indian Rupees using the ₹ symbol (integers preferred)
-- When listing multiple items include quantity and integer prices: e.g., "2x Paneer Tikka (₹240 each)"
-- If you are asked to extract order items, respond ONLY with the required JSON and no extra commentary.
-""")
-
-        return "\n".join(prompt_parts)
+        return "\n".join(parts)
 
     def _detect_intent(self, message: str) -> str:
-        """
-        Detect user intent from message
-        Simple keyword-based detection (can be improved with AI)
-        """
-        message_lower = message.lower()
+        m = (message or "").lower()
 
-        # Menu query keywords
-        menu_keywords = ['menu', 'food', 'dish', 'eat', 'items', 'show', 'available',
-                        'pizza', 'burger', 'pasta', 'salad', 'dessert', 'drink', 'beverage',
-                        'appetizer', 'main', 'entree']
-
-        # Order keywords
-        order_keywords = ['order', 'buy', 'want', 'get', 'purchase', 'take', 'add to cart',
-                         'i want', "i'll take", "i'd like"]
-
-        # Reservation keywords
-        reservation_keywords = ['book', 'reserve', 'table', 'reservation', 'booking',
-                               'book a table', 'reserve a table']
-
-        # Greeting keywords
-        greeting_keywords = ['hi', 'hello', 'hey', 'good morning', 'good afternoon',
-                           'good evening', 'greetings', 'sup', 'yo']
-
-        # FAQ keywords
-        faq_keywords = ['hours', 'open', 'close', 'delivery', 'payment', 'accept',
-                       'location', 'address', 'what time', 'when do you', 'do you',
-                       'timing', 'schedule']
-
-        # Check intents (order matters - more specific first)
-        if any(keyword in message_lower for keyword in greeting_keywords):
+        if any(m.startswith(g) for g in ['hi', 'hello', 'hey']):
             return "greeting"
-        elif any(keyword in message_lower for keyword in reservation_keywords):
-            return "reservation_intent"
-        elif any(keyword in message_lower for keyword in order_keywords):
+
+        order_keywords = [
+            'order', 'add', 'want', 'give me', 'get me',
+            "i'll have", "i'd like", "i'll take",
+            'buy', 'can i get', 'can i have', 'please add', 'i need'
+        ]
+        if any(k in m for k in order_keywords):
             return "order_intent"
-        elif any(keyword in message_lower for keyword in faq_keywords):
+
+        # numeric + food -> order
+        if re.search(r'\d+', m):
+            food_words = [
+                'biryani', 'chicken', 'paneer', 'veg', 'naan', 'roti',
+                'tikka', 'dal', 'curry', 'rice', 'kebab', 'samosa',
+                'lassi', 'chai', 'soup', 'kulfi'
+            ]
+            if any(f in m for f in food_words):
+                return "order_intent"
+
+        if any(k in m for k in ['book', 'reserve', 'reservation', 'table for']):
+            return "reservation_intent"
+
+        if any(k in m for k in ['hours', 'open', 'close', 'delivery', 'payment', 'location']):
             return "faq"
-        elif any(keyword in message_lower for keyword in menu_keywords):
+
+        if any(k in m for k in ['menu', 'food', 'dish', 'items', 'show']):
             return "menu_query"
-        else:
-            return "general_query"
+
+        if any(k in m for k in ['biryani', 'naan', 'roti', 'chicken', 'paneer', 'soup', 'kulfi']):
+            return "order_intent"
+
+        return "general_query"
 
     async def extract_order_items(self, message: str, menu_items: list) -> Dict[str, Any]:
         """
-        Extract order items and quantities from user message using AI
-
-        Args:
-            message: User's order message
-            menu_items: Available menu items
-
-        Returns:
-            Dict with extracted items and quantities
+        Attempt to extract ordered items from user message using the model.
+        Falls back to a deterministic extractor on failure.
+        Returns the same shape as before.
         """
         try:
-            # Build menu context with INR formatting
-            menu_text = "Available items:\n"
+            menu_text = "AVAILABLE MENU ITEMS:\n"
             for item in menu_items:
-                try:
-                    price_val = int(float(item.get('price', 0)))
-                except Exception:
-                    price_val = item.get('price', 0)
-                menu_text += f"- {item['name']} (ID: {item['id']}, Price: ₹{price_val})\n"
+                menu_text += f"- ID:{item['id']} | {item['name']} | ₹{item['price']}\n"
 
-            prompt = f"""
-{menu_text}
-
-User wants to order: "{message}"
-
-Extract the items and quantities they want to order.
-Respond ONLY with a JSON object in this exact format:
-{{
-    "items": [
-        {{"item_id": 4, "item_name": "Margherita Pizza", "quantity": 2, "price": 129}}
-    ],
-    "total": 258,
-    "confidence": "high"
-}}
-
-If you can't determine items clearly, set confidence to "low".
-Only include items that exist in the available menu.
-"""
+            prompt = f"""{menu_text}
+USER MESSAGE: "{message}"
+TASK: Extract food items to order. Match to the menu above.
+RESPOND ONLY with valid JSON (no markdown). Example:
+{{"items":[{{"item_id":1,"item_name":"Example","quantity":1,"price":10.0}}],"total":10.0,"confidence":"high"}}
+RULES: Default quantity=1. Use exact item_id from menu. If uncertain, return an empty items list and confidence 'low'."""
 
             response = self.model.generate_content(prompt)
+            raw = getattr(response, "text", None) or (response.get("text") if isinstance(response, dict) else None)
+            if not raw:
+                raise ValueError("Empty extraction response")
 
-            # Parse JSON from response
-            response_text = response.text.strip() if hasattr(response, 'text') else str(response).strip()
+            raw = raw.strip().replace("```json", "").replace("```", "").strip()
 
-            # Strip markdown fences if present
-            if response_text.startswith("```json"):
-                response_text = response_text.replace("```json", "").replace("```", "").strip()
-            elif response_text.startswith("```"):
-                response_text = response_text.replace("```", "").strip()
+            json_match = re.search(r"\{[\s\S]*\}", raw)
+            if not json_match:
+                # Let fallback handle it
+                raise json.JSONDecodeError("No JSON found", raw, 0)
 
-            # Some models include trailing commentary — attempt to extract JSON blob
-            # Find first '{' and last '}' and parse substring
-            try:
-                start = response_text.find("{")
-                end = response_text.rfind("}")
-                json_text = response_text[start:end+1] if start != -1 and end != -1 else response_text
-                order_data = json.loads(json_text)
-            except Exception:
-                # Fall back to direct load (will raise if invalid)
-                order_data = json.loads(response_text)
+            data = json.loads(json_match.group())
 
-            return {
-                "success": True,
-                "data": order_data,
-                "error": None
-            }
+            # Basic validation
+            if data.get("items"):
+                return {"success": True, "data": data, "error": None}
+
+            # Model returned no items → fallback
+            return self._fallback_extract_order(message, menu_items)
 
         except Exception as e:
-            print(f"Order extraction error: {str(e)}")
-            return {
-                "success": False,
-                "data": None,
-                "error": str(e)
-            }
+            print(f"[ERROR] Order extraction error: {str(e)}")
+            return self._fallback_extract_order(message, menu_items)
+
+    def _fallback_extract_order(self, message: str, menu_items: list) -> Dict[str, Any]:
+        """
+        Deterministic fallback extractor: tries to match user text to menu items.
+        Uses loose matching so short inputs like "veg" match "Veg Hot & Sour Soup".
+        Returns the same shape as before.
+        """
+        print("[DEBUG] Running ADVANCED fallback order extraction...")
+
+        msg = (message or "").lower()
+        found_items = []
+        total = 0.0
+
+        # Synonyms to expand
+        synonyms = {"veg": "vegetable", "veggie": "vegetable", "chix": "chicken"}
+        for k, v in synonyms.items():
+            if re.search(r'\b' + re.escape(k) + r'\b', msg):
+                msg += " " + v
+
+        # Split into candidate segments to handle multiple items
+        segments = re.split(r"\band\b|,|&|\n", msg)
+
+        for segment in segments:
+            seg = segment.strip()
+            if not seg:
+                continue
+
+            for item in menu_items:
+                name = item["name"]
+                name_lower = name.lower()
+
+                # Loose matching rules:
+
+                # 1) direct substring
+                if name_lower in seg:
+                    matched = True
+                # 2) if item name contains 'veg' and user said 'veg'
+                elif name_lower.startswith("veg") and re.search(r'\bveg\b', seg):
+                    matched = True
+                # 3) all words in item name are present in segment (order-insensitive)
+                elif all(w in seg for w in re.findall(r'\w+', name_lower)):
+                    matched = True
+                else:
+                    matched = False
+
+                if not matched:
+                    continue
+
+                # Quantity detection
+                quantity = 1
+                qty_patterns = [
+                    rf"(\d+)\s*(?:x)?\s*{re.escape(name_lower)}",
+                    rf"{re.escape(name_lower)}\s*(\d+)",
+                    rf"(\d+)\s*x\s*{re.escape(name_lower)}",
+                    r"(\d+)\s+(?:pieces|pcs|orders|order)\b"
+                ]
+                # check also for simple "2 veg" patterns
+                m_qty = None
+                for p in qty_patterns:
+                    m_qty = re.search(p, seg)
+                    if m_qty:
+                        try:
+                            quantity = int(m_qty.group(1))
+                        except Exception:
+                            quantity = 1
+                        break
+
+                # fallback: if there's any leading number in the segment
+                if not m_qty:
+                    lead_num = re.search(r'^\s*(\d+)\b', seg)
+                    if lead_num:
+                        try:
+                            quantity = int(lead_num.group(1))
+                        except Exception:
+                            quantity = 1
+
+                found_items.append({
+                    "item_id": item["id"],
+                    "item_name": item["name"],
+                    "quantity": quantity,
+                    "price": float(item["price"])
+                })
+
+                total += float(item["price"]) * quantity
+
+        if not found_items:
+            return {"success": False, "data": {"items": [], "total": 0.0, "confidence": "low"}, "error": "No match"}
+
+        return {"success": True, "data": {"items": found_items, "total": total, "confidence": "high"}, "error": None}
 
     async def extract_reservation_details(self, message: str) -> Dict[str, Any]:
         """
-        Extract reservation details from user message
-
-        Args:
-            message: User's reservation message
-
-        Returns:
-            Dict with date, time, party_size
+        Attempts to parse reservation details into a deterministic JSON.
+        Keeps the same return shape as before.
         """
         try:
-            prompt = f"""
-User wants to make a reservation: "{message}"
-
-Extract the reservation details.
-Respond ONLY with a JSON object in this exact format:
-{{
-    "date": "2025-11-15",
-    "time": "19:00",
-    "party_size": 4,
-    "special_requests": "window seat",
-    "confidence": "high"
-}}
-
-If any detail is missing or unclear, set confidence to "low".
-Use ISO format for date (YYYY-MM-DD) and time (HH:MM in 24-hour format).
-"""
+            prompt = (
+                f'User wants reservation: "{message}"\n'
+                'Respond ONLY with JSON in ISO date/time where possible. Example:\n'
+                '{"date":"2025-11-15","time":"19:00","party_size":4,"special_requests":"", "confidence":"high"}\n'
+                'If you cannot determine a value, return empty string for that field and confidence "low".'
+            )
 
             response = self.model.generate_content(prompt)
+            cleaned = getattr(response, "text", None) or (response.get("text") if isinstance(response, dict) else None)
+            if not cleaned:
+                raise ValueError("Empty reservation parsing response")
 
-            # Parse JSON
-            response_text = response.text.strip() if hasattr(response, 'text') else str(response).strip()
-            if response_text.startswith("```json"):
-                response_text = response_text.replace("```json", "").replace("```", "").strip()
-            elif response_text.startswith("```"):
-                response_text = response_text.replace("```", "").strip()
+            cleaned = cleaned.strip().replace("```json", "").replace("```", "").strip()
+            json_match = re.search(r"\{[\s\S]*\}", cleaned)
+            if not json_match:
+                raise json.JSONDecodeError("No JSON found", cleaned, 0)
 
-            # Extract JSON blob heuristically
-            try:
-                start = response_text.find("{")
-                end = response_text.rfind("}")
-                json_text = response_text[start:end+1] if start != -1 and end != -1 else response_text
-                reservation_data = json.loads(json_text)
-            except Exception:
-                reservation_data = json.loads(response_text)
-
-            return {
-                "success": True,
-                "data": reservation_data,
-                "error": None
-            }
+            data = json.loads(json_match.group())
+            return {"success": True, "data": data, "error": None}
 
         except Exception as e:
-            print(f"Reservation extraction error: {str(e)}")
-            return {
-                "success": False,
-                "data": None,
-                "error": str(e)
-            }
+            print(f"[ERROR] Reservation parsing: {str(e)}")
+            return {"success": False, "data": None, "error": str(e)}
 
 
-# Create singleton instance
+# singleton
 gemini_service = GeminiService()
