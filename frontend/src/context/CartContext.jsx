@@ -28,6 +28,24 @@ export const CartProvider = ({ children }) => {
     })
   }
 
+  // Add item with specific quantity (for chat orders)
+  const addToCartWithQuantity = (item, quantity) => {
+    console.log('[CART] Adding with quantity:', item.name, quantity)
+    setCartItems(prev => {
+      const existing = prev.find(i => i.id === item.id)
+      if (existing) {
+        // Add to existing quantity
+        return prev.map(i =>
+          i.id === item.id
+            ? { ...i, quantity: i.quantity + quantity }
+            : i
+        )
+      }
+      // New item with specified quantity
+      return [...prev, { ...item, quantity: quantity }]
+    })
+  }
+
   const removeFromCart = (itemId) => {
     setCartItems(prev => prev.filter(i => i.id !== itemId))
   }
@@ -92,12 +110,18 @@ export const CartProvider = ({ children }) => {
   const deliveryFee = cartItems.length > 0 ? 2.99 : 0
   const grandTotal = cartTotal + deliveryFee
 
+  // Debug log
+  useEffect(() => {
+    console.log('[CART] Current items:', cartItems)
+  }, [cartItems])
+
   return (
     <CartContext.Provider value={{
       cartItems,
       isCartOpen,
       setIsCartOpen,
       addToCart,
+      addToCartWithQuantity,
       removeFromCart,
       updateQuantity,
       increaseQuantity,

@@ -20,7 +20,7 @@ const ChatContainer = ({ darkMode }) => {
   const [sessionId] = useState(() => `session-${Date.now()}`)
   const messagesEndRef = useRef(null)
 
-  const { addToCart, setIsCartOpen } = useCart()
+  const { addToCartWithQuantity, setIsCartOpen } = useCart()
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -31,21 +31,24 @@ const ChatContainer = ({ darkMode }) => {
   }, [messages, isTyping])
 
   // Handle adding items to cart from chat
-  const handleCartAction = (data) => {
-    if (data.cart_items && data.cart_items.length > 0) {
-      data.cart_items.forEach(item => {
-        // Add each item to cart with specified quantity
-        for (let i = 0; i < item.quantity; i++) {
-          addToCart({
-            id: item.id,
-            name: item.name,
-            price: item.price,
-            description: item.description
-          })
-        }
+  const handleCartAction = (cartItems) => {
+    console.log('[DEBUG] Adding to cart:', cartItems)
+
+    if (cartItems && cartItems.length > 0) {
+      cartItems.forEach(item => {
+        // Add item with specified quantity
+        addToCartWithQuantity({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          description: item.description || ''
+        }, item.quantity)
       })
+
       // Open cart drawer to show added items
-      setTimeout(() => setIsCartOpen(true), 500)
+      setTimeout(() => {
+        setIsCartOpen(true)
+      }, 800)
     }
   }
 
@@ -70,6 +73,8 @@ const ChatContainer = ({ darkMode }) => {
         phone_number: '+1234567890'
       })
 
+      console.log('[DEBUG] API Response:', response.data)
+
       // Simulate typing delay
       setTimeout(() => {
         setIsThinking(false)
@@ -78,28 +83,34 @@ const ChatContainer = ({ darkMode }) => {
 
       // Add bot response with typing animation
       setTimeout(() => {
+        const responseData = response.data
+        const cartItems = responseData.data?.cart_items || []
+
+        console.log('[DEBUG] Cart items from response:', cartItems)
+
         const botMessage = {
           id: Date.now() + 1,
           type: 'bot',
-          text: response.data.response,
-          intent: response.data.intent,
-          action: response.data.action,
-          orderId: response.data.order_id,
-          reservationId: response.data.reservation_id,
-          menuItems: response.data.data?.menu_items || [],
-          cartItems: response.data.data?.cart_items || [],
+          text: responseData.response,
+          intent: responseData.intent,
+          action: responseData.action,
+          orderId: responseData.order_id,
+          reservationId: responseData.reservation_id,
+          menuItems: responseData.data?.menu_items || [],
+          cartItems: cartItems,
           timestamp: new Date()
         }
         setMessages(prev => [...prev, botMessage])
         setIsTyping(false)
 
-        // Handle cart action if items were added
-        if (response.data.data?.cart_items) {
-          handleCartAction(response.data.data)
+        // Handle cart action if items were extracted
+        if (cartItems.length > 0) {
+          handleCartAction(cartItems)
         }
       }, 1500)
 
     } catch (error) {
+      console.error('[ERROR] Chat error:', error)
       setIsThinking(false)
       setIsTyping(false)
 
@@ -114,7 +125,7 @@ const ChatContainer = ({ darkMode }) => {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden mx-2 rounded-md">
+    <div className="flex-1 flex flex-col overflow-hidden">
       {/* Messages Area */}
       <div className={`flex-1 overflow-y-auto px-4 py-6 space-y-4 ${
         darkMode ? 'bg-gray-900' : 'bg-gray-50'
