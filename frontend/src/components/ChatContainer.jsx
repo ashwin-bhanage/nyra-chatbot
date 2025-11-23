@@ -46,14 +46,14 @@ I can help you with:
       setSessionId(`session-${Date.now()}`);
       console.log("[CHAT] Order completed - resetting session");
 
-      setMessages(prev => [
+      setMessages((prev) => [
         ...prev,
         {
           id: Date.now(),
           type: "bot",
           text: "🎉 Your order has been placed successfully!\n\nThank you for ordering with us. Your delicious food is being prepared!\n\nWould you like to order something else?",
           timestamp: new Date(),
-        }
+        },
       ]);
     }
   }, [orderSuccess]);
@@ -68,22 +68,41 @@ I can help you with:
 
   const getCartSummary = () => {
     if (cartItems.length === 0) return "Cart is empty.";
-    const items = cartItems.map(item =>
-      `${item.quantity}x ${item.name} @ ₹${item.price}`
-    ).join(", ");
+    const items = cartItems
+      .map((item) => `${item.quantity}x ${item.name} @ ₹${item.price}`)
+      .join(", ");
     return `Current cart: ${items}. Total: ₹${cartTotal}`;
   };
 
   const isCartRelatedMessage = (text) => {
     const lower = text.toLowerCase();
     const cartKeywords = [
-      'cart', 'checkout', 'check out', 'total', 'bill', 'pay', 'payment',
-      'confirm', 'place order', 'place my order', 'what did i order',
-      'my order', 'summary', 'proceed', 'finalize', 'complete order',
-      'view cart', 'show cart', 'see cart', 'what\'s in my cart',
-      'ready to order', 'done ordering', 'that\'s all', 'thats all'
+      "cart",
+      "checkout",
+      "check out",
+      "total",
+      "bill",
+      "pay",
+      "payment",
+      "confirm",
+      "place order",
+      "place my order",
+      "what did i order",
+      "my order",
+      "summary",
+      "proceed",
+      "finalize",
+      "complete order",
+      "view cart",
+      "show cart",
+      "see cart",
+      "what's in my cart",
+      "ready to order",
+      "done ordering",
+      "that's all",
+      "thats all",
     ];
-    return cartKeywords.some(kw => lower.includes(kw));
+    return cartKeywords.some((kw) => lower.includes(kw));
   };
 
   const handleAddToCart = (items) => {
@@ -91,7 +110,7 @@ I can help you with:
 
     console.log("[CHAT] Adding items to cart:", items);
 
-    items.forEach(item => {
+    items.forEach((item) => {
       const price = parseFloat(item.price) || 0;
       const quantity = parseInt(item.quantity) || 1;
 
@@ -100,7 +119,7 @@ I can help you with:
           id: item.id,
           name: item.name,
           price: price,
-          description: item.description || ""
+          description: item.description || "",
         },
         quantity
       );
@@ -150,23 +169,46 @@ I can help you with:
         const menuItems = data.menu_items || data.data?.menu_items || [];
         const newCartItems = data.cart_items || data.data?.cart_items || [];
 
-        let responseText = data.response || "I'm not sure how to respond to that.";
+        let responseText =
+          data.response || "I'm not sure how to respond to that.";
 
         // Show actual cart for cart-related queries
-        if (isCartRelatedMessage(text) && cartItems.length > 0 && !newCartItems.length) {
-          const itemsList = cartItems.map(item =>
-            `• ${item.quantity}x ${item.name} @ ₹${item.price} = ₹${item.price * item.quantity}`
-          ).join("\n");
+        let shouldOpenCart = false;
+        if (
+          isCartRelatedMessage(text) &&
+          cartItems.length > 0 &&
+          !newCartItems.length
+        ) {
+          const itemsList = cartItems
+            .map(
+              (item) =>
+                `• ${item.quantity}x ${item.name} @ ₹${item.price} = ₹${
+                  item.price * item.quantity
+                }`
+            )
+            .join("\n");
 
-          responseText = `Here's what's in your cart: 🛒\n\n${itemsList}\n\n💰 Subtotal: ₹${cartTotal}\n🚚 Delivery: ₹40\n\n**Total: ₹${cartTotal + 40}**\n\nReady to checkout? Click the cart icon to proceed!`;
+          responseText = `Here's what's in your cart: 🛒\n\n${itemsList}\n\n💰 Subtotal: ₹${cartTotal}\n🚚 Delivery: ₹40\n\n**Total: ₹${
+            cartTotal + 40
+          }**\n\nReady to checkout? Click the cart icon to proceed!`;
 
-          // Also open cart to show them
+          shouldOpenCart = true;
+        }
+
+        // ... rest of code ...
+
+        setMessages((prev) => [...prev, botMessage]);
+        setIsTyping(false);
+
+        // Open cart if needed
+        if (shouldOpenCart) {
           setTimeout(() => setIsCartOpen(true), 500);
         }
 
         // Empty cart message
         if (isCartRelatedMessage(text) && cartItems.length === 0) {
-          responseText = "Your cart is empty! 🛒\n\nWould you like to browse our menu? Try saying:\n• 'Show me starters'\n• 'What biryanis do you have?'\n• 'Add 1 Butter Chicken'";
+          responseText =
+            "Your cart is empty! 🛒\n\nWould you like to browse our menu? Try saying:\n• 'Show me starters'\n• 'What biryanis do you have?'\n• 'Add 1 Butter Chicken'";
         }
 
         const botMessage = {
@@ -196,9 +238,7 @@ I can help you with:
           clearCart();
           setIsCartOpen(true);
         }
-
       }, 1100);
-
     } catch (error) {
       console.error("[CHAT ERROR]:", error);
       setIsThinking(false);
@@ -237,7 +277,9 @@ I can help you with:
           >
             <div
               className={`px-4 py-3 rounded-2xl shadow-lg ${
-                darkMode ? "bg-gray-800 text-gray-300" : "bg-white text-gray-700"
+                darkMode
+                  ? "bg-gray-800 text-gray-300"
+                  : "bg-white text-gray-700"
               }`}
             >
               💭 Thinking...
