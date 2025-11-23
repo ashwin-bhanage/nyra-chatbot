@@ -37,11 +37,20 @@ class ChatService:
             print(f"[DEBUG] Intent detected: {intent}")
 
             # Intent routing
-            if intent == 'order_intent':
-                result = await self._handle_order_intent(db, user_message, user_id, phone_number, chat_history)
+            if intent == 'checkout_intent':
+                # Don't extract items, just show a message
+                result = {
+                    "response": "Great! Your cart is ready for checkout. Please review your items and click 'Place Order' when ready!",
+                    "intent": "checkout_intent",
+                    "session_id": session_id,
+                    "user_id": user_id,
+                    "menu_items": [],
+                    "cart_items": [],  # Don't return cart items!
+                    "action": "show_cart"
+                }
 
-            elif intent == 'reservation_intent':
-                result = await self._handle_reservation_intent(db, user_message, user_id, phone_number, chat_history)
+            elif intent == 'order_intent':
+                result = await self._handle_order_intent(db, user_message, user_id, phone_number, chat_history)
 
             else:
                 menu_items = self._get_relevant_menu_items(db, user_message) if intent == 'menu_query' else []
@@ -94,15 +103,25 @@ class ChatService:
         if any(m.startswith(g) for g in ['hi', 'hello', 'hey']):
             return 'greeting'
 
+        # CHECKOUT/CART VIEW (check BEFORE order_intent!)
+        checkout_keywords = [
+            'checkout', 'check out', 'place order', 'complete order', 'finalize',
+            'proceed', 'confirm', 'ready to order', 'done ordering', "that's all",
+            'show cart', 'view cart', 'see cart', 'my cart', 'what did i order',
+            'cart', 'bill', 'total', 'summary'
+        ]
+        if any(k in m for k in checkout_keywords):
+            return 'checkout_intent'
+
         # Strong order keywords
         order_keywords = [
-            'order', 'add', 'want', 'give me', 'get me', "i'll have", "i'd like",
+            'add', 'want', 'give me', 'get me', "i'll have", "i'd like",
             "i'll take", 'buy', 'can i get', 'can i have', 'please add', 'i need'
         ]
         if any(k in m for k in order_keywords):
             return 'order_intent'
 
-        # Broad food vocabulary (covers single-word inputs like "veg", "soup", "kulfi")
+        # Broad food vocabulary
         food_words = [
             'veg', 'vegetable', 'soup', 'hot & sour', 'hot and sour', 'tomato',
             'biryani', 'naan', 'roti', 'chicken', 'paneer', 'dal', 'curry',
