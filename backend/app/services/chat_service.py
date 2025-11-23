@@ -253,23 +253,46 @@ class ChatService:
 
         except Exception as e:
             print("[ERROR] _handle_order_intent failed:", e)
-            return {
-                "response": "Sorry, I had trouble processing that. Try: 'Add 2 Chicken Biryani'",
-                "intent": "order_intent",
-                "session_id": "",
-                "user_id": user_id,
-                "menu_items": [],
-                "cart_items": [],
-                "action": "error"
-            }
+            import traceback
+            traceback.print_exc()
+
+            # Show relevant menu instead of error
+            return self._order_show_suggestions(db, user_message, user_id)
 
     def _order_show_suggestions(self, db, msg, user_id):
-        relevant = self._get_relevant_menu_items(db, msg)[:6]
+        """Show menu items when order is ambiguous"""
+        relevant = self._get_relevant_menu_items(db, msg)[:8]
+
+        if relevant:
+            items_text = "\n".join([
+                f"• {item['name']} - ₹{item['price']}"
+                for item in relevant
+            ])
+
+            # Extract the category/item type from message
+            category = "available"
+            if "biryani" in msg.lower():
+                category = "biryani"
+            elif "dessert" in msg.lower() or "sweet" in msg.lower():
+                category = "dessert"
+            elif "beverage" in msg.lower() or "drink" in msg.lower():
+                category = "beverage"
+
+            response = (
+                f"Here are our {category} options:\n\n"
+                f"{items_text}\n\n"
+                "Which one would you like? Just say like '2 Chicken Biryani' or 'Add 1 Butter Naan'"
+            )
+        else:
+            response = (
+                "I'd love to help you order! Try saying:\n"
+                "• 'Add 2 Chicken Biryani'\n"
+                "• '1 Paneer Tikka'\n"
+                "• 'Show me desserts'"
+            )
+
         return {
-            "response": (
-                "I'd love to help you order! Here are some items you might like. "
-                "Try saying '2 Chicken Biryani' or 'Add 1 Paneer Tikka'."
-            ),
+            "response": response,
             "intent": "order_intent",
             "session_id": "",
             "user_id": user_id,
