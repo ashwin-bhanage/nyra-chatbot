@@ -1,38 +1,44 @@
 """
-FastAPI Application Entry Point
-This is the main file that runs the entire API
+FastAPI Application Entry Point - Production Ready
 """
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
+import os
 
-# Create FastAPI app instance
 app = FastAPI(
     title=settings.APP_NAME,
-    description="AI-powered restaurant chatbot API for menu queries, orders, and reservations",
+    description="AI-powered restaurant chatbot API",
     version=settings.API_VERSION,
-    docs_url="/docs",  # Swagger UI documentation
-    redoc_url="/redoc"  # ReDoc documentation
+    docs_url="/docs",
+    redoc_url="/redoc"
 )
 
-# CORS middleware - allows frontend to call API
-# In production, replace "*" with your actual frontend domain
+# CORS Configuration
+allowed_origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    settings.FRONTEND_URL,
+]
+
+if os.getenv("ALLOWED_ORIGINS"):
+    extra_origins = os.getenv("ALLOWED_ORIGINS").split(",")
+    allowed_origins.extend(extra_origins)
+
+allowed_origins = list(set(filter(None, allowed_origins)))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite dev server
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-# Root endpoint - health check
 @app.get("/", tags=["Health Check"])
 async def root():
-    """
-    Root endpoint - verify API is running
-    """
     return {
         "message": f"Welcome to {settings.APP_NAME}!",
         "status": "online",
@@ -42,82 +48,25 @@ async def root():
     }
 
 
-# Health check endpoint
 @app.get("/health", tags=["Health Check"])
 async def health_check():
-    """
-    Health check endpoint for monitoring
-    """
-    return {
-        "status": "healthy",
-        "app": settings.APP_NAME,
-        "debug_mode": settings.DEBUG
-    }
+    return {"status": "healthy", "environment": settings.ENVIRONMENT}
 
 
-# Import routers here (after app is created to avoid circular imports)
 from app.routers import menu, chat, order, reservation
 
-# Include routers
-app.include_router(
-    menu.router,
-    prefix=f"/api/{settings.API_VERSION}",
-    tags=["Menu"]
-)
-
-app.include_router(
-    chat.router,
-    prefix=f"/api/{settings.API_VERSION}",
-    tags=["Chat"]
-)
-
-app.include_router(
-    order.router,
-    prefix=f"/api/{settings.API_VERSION}",
-    tags=["Orders"]
-)
-
-app.include_router(
-    reservation.router,
-    prefix=f"/api/{settings.API_VERSION}",
-    tags=["Reservations"]
-)
+app.include_router(menu.router, prefix=f"/api/{settings.API_VERSION}", tags=["Menu"])
+app.include_router(chat.router, prefix=f"/api/{settings.API_VERSION}", tags=["Chat"])
+app.include_router(order.router, prefix=f"/api/{settings.API_VERSION}", tags=["Orders"])
+app.include_router(reservation.router, prefix=f"/api/{settings.API_VERSION}", tags=["Reservations"])
 
 
-# Startup event
 @app.on_event("startup")
 async def startup_event():
-    """
-    Runs when application starts
-    """
-    print(f"\n{'='*50}")
-    print(f"🚀 {settings.APP_NAME} Starting...")
-    print(f"{'='*50}")
-    print(f"📍 Restaurant: {settings.RESTAURANT_NAME}")
-    print(f"🕐 Hours: {settings.RESTAURANT_HOURS}")
-    print(f"🚚 Delivery: {'Available' if settings.DELIVERY_AVAILABLE else 'Not Available'}")
-    print(f"📚 Docs: http://localhost:8000/docs")
-    print(f"💬 Chat Test: http://localhost:8000/api/v1/chat/test")
-    print(f"{'='*50}\n")
+    print(f"Starting {settings.APP_NAME}...")
+    print(f"Environment: {settings.ENVIRONMENT}")
 
 
-# Shutdown event
-@app.on_event("shutdown")
-async def shutdown_event():
-    """
-    Runs when application shuts down
-    """
-    print(f"\n{'='*50}")
-    print(f"👋 {settings.APP_NAME} Shutting Down...")
-    print(f"{'='*50}\n")
-
-
-# For running directly: python app/main.py
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        "app.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True  # Auto-reload on code changes
-    )
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

@@ -1,55 +1,58 @@
 """
-Configuration file - Loads environment variables
-This file reads settings from .env file and makes them available to the app
+Configuration file - Production Ready
+Supports both MySQL (local) and PostgreSQL (production)
 """
 
 from pydantic_settings import BaseSettings
 from typing import Optional
+import os
 
 
 class Settings(BaseSettings):
-    """
-    Application settings loaded from .env file
-    BaseSettings automatically reads from .env
-    """
-
-    # Database settings
+    # === DATABASE SETTINGS ===
     DB_HOST: str = "localhost"
     DB_PORT: int = 3306
     DB_NAME: str = "nyra_db"
     DB_USER: str = "nyra_user"
-    DB_PASSWORD: str
+    DB_PASSWORD: str = ""
 
-    # Gemini API
-    GEMINI_API_KEY: str
+    # For production PostgreSQL (Render provides this)
+    DATABASE_URL: Optional[str] = None
 
-    # App settings
+    # === API KEYS ===
+    GEMINI_API_KEY: str = ""
+
+    # === APP SETTINGS ===
     APP_NAME: str = "Restaurant Chatbot"
     DEBUG: bool = True
     API_VERSION: str = "v1"
+    ENVIRONMENT: str = "development"
 
-    # Restaurant info
-    RESTAURANT_NAME: str = "Tasty Bites Café"
+    # === RESTAURANT INFO ===
+    RESTAURANT_NAME: str = "Royal Spice Kitchen"
     RESTAURANT_HOURS: str = "11:00 AM - 11:00 PM"
     DELIVERY_AVAILABLE: bool = True
 
-    # Database URL (constructed automatically)
+    # === CORS ===
+    FRONTEND_URL: str = "http://localhost:5173"
+
     @property
-    def DATABASE_URL(self) -> str:
-        """Constructs MySQL connection URL"""
+    def database_url(self) -> str:
+        if self.DATABASE_URL:
+            url = self.DATABASE_URL
+            if url.startswith("postgres://"):
+                url = url.replace("postgres://", "postgresql://", 1)
+            return url
         return f"mysql+pymysql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
+    @property
+    def is_production(self) -> bool:
+        return self.ENVIRONMENT == "production" or self.DATABASE_URL is not None
+
     class Config:
-        env_file = ".env"  # Tell pydantic to read from .env file
+        env_file = ".env"
         case_sensitive = True
+        extra = "allow"
 
 
-# Create a single instance to use throughout the app
 settings = Settings()
-
-# For debugging - print settings (remove password for security)
-if __name__ == "__main__":
-    print(f"App Name: {settings.APP_NAME}")
-    print(f"Database: {settings.DB_NAME}")
-    print(f"Debug Mode: {settings.DEBUG}")
-    print(f"Database URL: mysql+pymysql://{settings.DB_USER}:****@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}")
