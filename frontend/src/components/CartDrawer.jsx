@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, ShoppingBag, Trash2, Plus, Minus, ShoppingCart } from 'lucide-react'
 import { useCart } from '../context/CartContext'
 import axios from 'axios'
+import { API_URL } from '../config'
 import { useEffect, useState } from 'react'
 
 const CartDrawer = ({ darkMode }) => {
@@ -60,7 +61,7 @@ const CartDrawer = ({ darkMode }) => {
         special_instructions: ''
       }
 
-      const response = await axios.post('/api/v1/order', orderPayload)
+      const response = await axios.post(`${API_URL}/api/v1/order`, orderPayload)
 
       // 🔥 SUCCESS — unify both chatbot + manual order logic
       triggerOrderSuccess(response.data.id)

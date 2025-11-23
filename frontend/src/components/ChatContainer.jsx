@@ -5,6 +5,7 @@ import InputBox from "./InputBox";
 import TypingIndicator from "./TypingIndicator";
 import { useCart } from "../context/CartContext";
 import axios from "axios";
+import { API_URL } from "../config";
 
 const ChatContainer = ({ darkMode }) => {
   const [messages, setMessages] = useState([
@@ -127,7 +128,7 @@ I can help you with:
         messageToSend = `${text}\n\n[ACTUAL CART: ${getCartSummary()}]`;
       }
 
-      const response = await axios.post("/api/v1/chat", {
+      const response = await axios.post(`${API_URL}/api/v1/chat`, {
         message: messageToSend,
         session_id: sessionId,
         phone_number: "+1234567890",
