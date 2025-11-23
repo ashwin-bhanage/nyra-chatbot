@@ -149,6 +149,19 @@ I can help you with:
         const menuItems = data.menu_items || data.data?.menu_items || [];
         const newCartItems = data.cart_items || data.data?.cart_items || [];
 
+        // Check if message already exists (prevent duplicates)
+        const messageExists = messages.some(m =>
+          m.type === 'bot' &&
+          m.text === data.response &&
+          Date.now() - m.timestamp < 2000
+        );
+
+        if (messageExists) {
+          console.log("[CHAT] Duplicate message detected, skipping");
+          setIsTyping(false);
+          return;
+        }
+
         let responseText = data.response || "I'm not sure how to respond to that.";
         let shouldOpenCart = false;
 
