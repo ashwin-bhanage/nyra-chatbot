@@ -392,13 +392,10 @@ class ChatService:
         return [{"user_message": l.user_message, "bot_response": l.bot_response} for l in reversed(logs)]
 
     def _get_relevant_menu_items(self, db: Session, message: str):
-        """
-        Returns menu items based on explicit category or keyword match.
-        """
+        """Returns menu items based on category or keyword match"""
 
         m = (message or "").lower().strip()
 
-        # CATEGORY MAP → KEYWORDS THAT USERS MAY TYPE
         category_mapping = {
             "APPETIZER": ["starter", "starters", "appetizer", "appetizers", "snacks", "tandoori", "soup"],
             "MAIN": ["main", "mains", "curry", "curries", "gravy", "biryani", "rice", "noodles", "bread", "naan", "roti"],
@@ -406,16 +403,18 @@ class ChatService:
             "BEVERAGE": ["drink", "drinks", "beverage", "beverages", "chai", "coffee", "lassi", "juice", "soda"],
         }
 
-        # If user explicitly asks a category → return that category
+        # Check category keywords
         for category_key, keywords in category_mapping.items():
             if any(k in m for k in keywords):
+                # FIX: Cast ENUM to text for ILIKE
+                from sqlalchemy import cast, String
                 rows = db.query(MenuItem).filter(
-                    MenuItem.category.ilike(category_key),
+                    cast(MenuItem.category, String).ilike(category_key),
                     MenuItem.is_available == True
                 ).all()
                 return [r.to_dict() for r in rows]
 
-        # If user mentions a specific keyword (paneer, kulfi, etc.)
+        # Keyword search
         keyword_terms = [
             'biryani', 'naan', 'roti', 'chicken', 'paneer', 'dal', 'tikka', 'kulfi',
             'dessert', 'sweet', 'ice cream', 'halwa', 'chai', 'lassi', 'soup'
@@ -427,11 +426,11 @@ class ChatService:
                     MenuItem.is_available == True,
                     (
                         MenuItem.name.ilike(f"%{term}%") |
-                        MenuItem.description.ilike(f"%{term}%") |
-                        MenuItem.category.ilike(f"%{term}%")
+                        MenuItem.description.ilike(f"%{term}%")
                     )
                 ).all()
-                return [r.to_dict() for r in rows]
+                if rows:
+                    return [r.to_dict() for r in rows]
 
         # Fallback: return first 8 items
         rows = db.query(MenuItem).filter(MenuItem.is_available == True).limit(8).all()
