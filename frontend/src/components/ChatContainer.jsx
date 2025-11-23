@@ -109,10 +109,13 @@ I can help you with:
     if (!items || items.length === 0) return;
 
     console.log("[CHAT] Adding items to cart:", items);
+    console.log("[CHAT] Current cart before add:", cartItems);
 
     items.forEach((item) => {
       const price = parseFloat(item.price) || 0;
       const quantity = parseInt(item.quantity) || 1;
+
+      console.log(`[CHAT] Adding: ${item.name} x${quantity} @ ₹${price}`);
 
       addToCartWithQuantity(
         {
@@ -124,6 +127,11 @@ I can help you with:
         quantity
       );
     });
+
+    console.log("[CHAT] Cart after add (check in 100ms)...");
+    setTimeout(() => {
+      console.log("[CHAT] Cart items now:", cartItems);
+    }, 100);
 
     console.log("[CHAT] Opening cart drawer...");
     setTimeout(() => {
