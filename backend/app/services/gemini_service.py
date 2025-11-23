@@ -194,15 +194,35 @@ RULES: Default quantity=1. Use exact item_id from menu. If uncertain, return an 
 
     def _fallback_extract_order(self, message: str, menu_items: list) -> Dict[str, Any]:
         """
-        Deterministic fallback extractor: tries to match user text to menu items.
-        Uses loose matching so short inputs like "veg" match "Veg Hot & Sour Soup".
-        Returns the same shape as before.
+        Deterministic fallback extractor with STRICT matching.
+        Returns LOW confidence if query is too generic.
         """
-        print("[DEBUG] Running ADVANCED fallback order extraction...")
+        print("[DEBUG] Running STRICT fallback order extraction...")
 
-        msg = (message or "").lower()
+        msg = (message or "").lower().strip()
         found_items = []
         total = 0.0
+
+        # Check if query is too generic (just category name)
+        generic_terms = [
+            'biryani', 'naan', 'roti', 'dessert', 'beverage', 'drink',
+            'soup', 'starter', 'curry', 'order', 'food', 'menu'
+        ]
+
+        # If message is ONLY a generic term (e.g., just "biryani"), return low confidence
+        msg_words = msg.split()
+        if len(msg_words) <= 2 and any(term == msg or term in msg_words for term in generic_terms):
+            # Check if there's a specific modifier
+            modifiers = ['chicken', 'veg', 'vegetable', 'paneer', 'mutton', 'egg', 'butter', 'garlic']
+            has_modifier = any(mod in msg for mod in modifiers)
+
+            if not has_modifier:
+                print(f"[DEBUG] Query too generic: '{msg}' - returning low confidence")
+                return {
+                    "success": False,
+                    "data": {"items": [], "total": 0.0, "confidence": "low"},
+                    "error": "Query too generic"
+                }
 
         # Synonyms to expand
         synonyms = {"veg": "vegetable", "veggie": "vegetable", "chix": "chicken"}
@@ -210,7 +230,7 @@ RULES: Default quantity=1. Use exact item_id from menu. If uncertain, return an 
             if re.search(r'\b' + re.escape(k) + r'\b', msg):
                 msg += " " + v
 
-        # Split into candidate segments to handle multiple items
+        # Split into candidate segments
         segments = re.split(r"\band\b|,|&|\n", msg)
 
         for segment in segments:
@@ -221,20 +241,24 @@ RULES: Default quantity=1. Use exact item_id from menu. If uncertain, return an 
             for item in menu_items:
                 name = item["name"]
                 name_lower = name.lower()
+                matched = False
 
-                # Loose matching rules:
+                # STRICT matching rules:
 
-                # 1) direct substring
-                if name_lower in seg:
+                # 1) Exact full name match
+                if name_lower == seg:
                     matched = True
-                # 2) if item name contains 'veg' and user said 'veg'
-                elif name_lower.startswith("veg") and re.search(r'\bveg\b', seg):
+
+                # 2) User said specific item + category (e.g., "chicken biryani", "butter naan")
+                elif name_lower in seg and len(seg.split()) >= 2:
                     matched = True
-                # 3) all words in item name are present in segment (order-insensitive)
-                elif all(w in seg for w in re.findall(r'\w+', name_lower)):
-                    matched = True
-                else:
-                    matched = False
+
+                # 3) All words from item name present in segment
+                elif len(name_lower.split()) >= 2:
+                    item_words = set(re.findall(r'\w+', name_lower))
+                    seg_words = set(re.findall(r'\w+', seg))
+                    if item_words.issubset(seg_words):
+                        matched = True
 
                 if not matched:
                     continue
@@ -244,28 +268,23 @@ RULES: Default quantity=1. Use exact item_id from menu. If uncertain, return an 
                 qty_patterns = [
                     rf"(\d+)\s*(?:x)?\s*{re.escape(name_lower)}",
                     rf"{re.escape(name_lower)}\s*(\d+)",
-                    rf"(\d+)\s*x\s*{re.escape(name_lower)}",
-                    r"(\d+)\s+(?:pieces|pcs|orders|order)\b"
+                    r"(\d+)\s+(?:x|pieces|pcs|orders|order)\b"
                 ]
-                # check also for simple "2 veg" patterns
-                m_qty = None
+
                 for p in qty_patterns:
                     m_qty = re.search(p, seg)
                     if m_qty:
                         try:
                             quantity = int(m_qty.group(1))
+                            if quantity > 20:  # sanity check
+                                quantity = 1
                         except Exception:
                             quantity = 1
                         break
 
-                # fallback: if there's any leading number in the segment
-                if not m_qty:
-                    lead_num = re.search(r'^\s*(\d+)\b', seg)
-                    if lead_num:
-                        try:
-                            quantity = int(lead_num.group(1))
-                        except Exception:
-                            quantity = 1
+                # Avoid duplicates
+                if any(f["item_id"] == item["id"] for f in found_items):
+                    continue
 
                 found_items.append({
                     "item_id": item["id"],
@@ -275,11 +294,22 @@ RULES: Default quantity=1. Use exact item_id from menu. If uncertain, return an 
                 })
 
                 total += float(item["price"]) * quantity
+                print(f"[DEBUG] Matched: {item['name']} x {quantity}")
 
         if not found_items:
-            return {"success": False, "data": {"items": [], "total": 0.0, "confidence": "low"}, "error": "No match"}
+            print("[DEBUG] No specific items matched")
+            return {
+                "success": False,
+                "data": {"items": [], "total": 0.0, "confidence": "low"},
+                "error": "No match"
+            }
 
-        return {"success": True, "data": {"items": found_items, "total": total, "confidence": "high"}, "error": None}
+        print(f"[DEBUG] Found {len(found_items)} items")
+        return {
+            "success": True,
+            "data": {"items": found_items, "total": total, "confidence": "high"},
+            "error": None
+        }
 
     async def extract_reservation_details(self, message: str) -> Dict[str, Any]:
         """
