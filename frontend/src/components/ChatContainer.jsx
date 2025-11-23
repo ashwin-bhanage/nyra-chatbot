@@ -39,7 +39,6 @@ I can help you with:
     orderSuccess,
   } = useCart();
 
-  // Reset chat session when order is placed
   const [sessionId, setSessionId] = useState(() => `session-${Date.now()}`);
 
   useEffect(() => {
@@ -47,7 +46,6 @@ I can help you with:
       setSessionId(`session-${Date.now()}`);
       console.log("[CHAT] Order completed - resetting session");
 
-      // Add order confirmation message to chat
       setMessages(prev => [
         ...prev,
         {
@@ -108,7 +106,12 @@ I can help you with:
       );
     });
 
-    setTimeout(() => setIsCartOpen(true), 300);
+    // FIX: Force cart open with slight delay
+    console.log("[CHAT] Opening cart drawer...");
+    setTimeout(() => {
+      setIsCartOpen(true);
+      console.log("[CHAT] Cart drawer opened");
+    }, 500);
   };
 
   const sendMessage = async (text) => {
@@ -156,6 +159,9 @@ I can help you with:
           ).join("\n");
 
           responseText = `Here's what's in your cart: 🛒\n\n${itemsList}\n\n💰 Subtotal: ₹${cartTotal}\n🚚 Delivery: ₹40\n\n**Total: ₹${cartTotal + 40}**\n\nReady to checkout? Click the cart icon to proceed!`;
+
+          // Also open cart to show them
+          setTimeout(() => setIsCartOpen(true), 500);
         }
 
         // Empty cart message
@@ -184,7 +190,7 @@ I can help you with:
           handleAddToCart(newCartItems);
         }
 
-        // Order created via chat
+        // Order created via chat (not implemented in backend yet)
         if (data.action === "order_created" && data.order_id) {
           triggerOrderSuccess(data.order_id);
           clearCart();
