@@ -45,12 +45,15 @@ class ChatService:
                     "session_id": session_id,
                     "user_id": user_id,
                     "menu_items": [],
-                    "cart_items": [],  # Don't return cart items!
+                    "cart_items": [],
                     "action": "show_cart"
                 }
 
             elif intent == 'order_intent':
                 result = await self._handle_order_intent(db, user_message, user_id, phone_number, chat_history)
+
+            elif intent == 'reservation_intent':
+                result = await self._handle_reservation_intent(db, user_message, user_id, phone_number, chat_history)
 
             else:
                 menu_items = self._get_relevant_menu_items(db, user_message) if intent == 'menu_query' else []
@@ -61,7 +64,6 @@ class ChatService:
                     chat_history=chat_history
                 )
 
-                # If model produced menu text for a menu_query, the actual menu_items are returned separately
                 result = {
                     "response": ai['response'],
                     "intent": intent,
@@ -89,11 +91,8 @@ class ChatService:
                 "action": "error"
             }
 
-    # ----------------------------------------------------------------------------------------
-    # INTENT DETECTION (IMPROVED)
-    # ----------------------------------------------------------------------------------------
-
     def _detect_intent(self, message: str) -> str:
+        """Detect user intent from message"""
         m = (message or "").lower()
 
         if not m:
@@ -149,10 +148,6 @@ class ChatService:
 
         return 'general_query'
 
-    # ----------------------------------------------------------------------------------------
-    # ORDER HANDLER (uses robust matching to DB menu items)
-    # ----------------------------------------------------------------------------------------
-
     async def _handle_order_intent(
         self,
         db: Session,
@@ -161,6 +156,7 @@ class ChatService:
         phone_number: Optional[str],
         chat_history: List[Dict]
     ) -> Dict[str, Any]:
+        """Handle order placement through chat"""
 
         print("[DEBUG] _handle_order_intent called")
 
@@ -169,7 +165,7 @@ class ChatService:
             menu_rows = db.query(MenuItem).filter(MenuItem.is_available == True).all()
             menu_items = [item.to_dict() for item in menu_rows]
 
-            # Extract items (model -> structured JSON or fallback)
+            # Extract items
             extraction_result = await gemini_service.extract_order_items(user_message, menu_items)
             print(f"[DEBUG] Extraction result: {extraction_result}")
 
@@ -186,29 +182,25 @@ class ChatService:
             cart_items = []
             total_amount = 0.0
 
-            # Match extracted items to menu (defensive matching)
+            # Match extracted items to menu
             for extracted in items_list:
                 item_id = extracted.get('item_id')
                 item_name = (extracted.get('item_name') or "").strip().lower()
                 quantity = extracted.get('quantity', 1)
 
-                # ID match first (most reliable)
+                # ID match first
                 menu_item = next((m for m in menu_items if m['id'] == item_id), None)
 
-                # exact name match
+                # Exact name match
                 if not menu_item and item_name:
                     menu_item = next((m for m in menu_items if m['name'].strip().lower() == item_name), None)
 
-                # substring match
+                # Substring match
                 if not menu_item and item_name:
                     menu_item = next((m for m in menu_items if item_name in m['name'].strip().lower()), None)
 
-                # category-match fallback
-                if not menu_item and item_name:
-                    menu_item = next((m for m in menu_items if item_name in (m.get('category') or '').lower()), None)
-
                 if not menu_item:
-                    print(f"[DEBUG] No match for extracted item '{item_name}' (id={item_id})")
+                    print(f"[DEBUG] No match for '{item_name}' (id={item_id})")
                     continue
 
                 try:
@@ -255,8 +247,6 @@ class ChatService:
             print("[ERROR] _handle_order_intent failed:", e)
             import traceback
             traceback.print_exc()
-
-            # Show relevant menu instead of error
             return self._order_show_suggestions(db, user_message, user_id)
 
     def _order_show_suggestions(self, db, msg, user_id):
@@ -269,7 +259,7 @@ class ChatService:
                 for item in relevant
             ])
 
-            # Extract the category/item type from message
+            # Extract category from message
             category = "available"
             if "biryani" in msg.lower():
                 category = "biryani"
@@ -277,6 +267,8 @@ class ChatService:
                 category = "dessert"
             elif "beverage" in msg.lower() or "drink" in msg.lower():
                 category = "beverage"
+            elif "naan" in msg.lower() or "roti" in msg.lower():
+                category = "bread"
 
             response = (
                 f"Here are our {category} options:\n\n"
@@ -301,10 +293,6 @@ class ChatService:
             "action": "showing_menu"
         }
 
-    # ----------------------------------------------------------------------------------------
-    # RESERVATION HANDLER
-    # ----------------------------------------------------------------------------------------
-
     async def _handle_reservation_intent(
         self,
         db: Session,
@@ -313,6 +301,7 @@ class ChatService:
         phone_number: Optional[str],
         chat_history: List[Dict]
     ) -> Dict[str, Any]:
+        """Handle reservation through chat"""
 
         try:
             extraction = await gemini_service.extract_reservation_details(user_message)
@@ -368,11 +357,8 @@ class ChatService:
                 "action": "reservation_failed"
             }
 
-    # ----------------------------------------------------------------------------------------
-    # HELPERS
-    # ----------------------------------------------------------------------------------------
-
     def _get_or_create_user(self, db: Session, phone_number: str) -> User:
+        """Get or create user"""
         user = db.query(User).filter(User.phone_number == phone_number).first()
         if not user:
             user = User(phone_number=phone_number)
@@ -382,6 +368,7 @@ class ChatService:
         return user
 
     def _get_chat_history(self, db: Session, session_id: str, limit: int = 5):
+        """Get recent chat history"""
         logs = (
             db.query(ChatLog)
             .filter(ChatLog.session_id == session_id)
@@ -392,51 +379,71 @@ class ChatService:
         return [{"user_message": l.user_message, "bot_response": l.bot_response} for l in reversed(logs)]
 
     def _get_relevant_menu_items(self, db: Session, message: str):
-        """Returns menu items based on category or keyword match"""
+        """Returns menu items based on keyword or category"""
+        from sqlalchemy import cast, String, or_
 
         m = (message or "").lower().strip()
 
-        category_mapping = {
-            "APPETIZER": ["starter", "starters", "appetizer", "appetizers", "snacks", "tandoori", "soup"],
-            "MAIN": ["main", "mains", "curry", "curries", "gravy", "biryani", "rice", "noodles", "bread", "naan", "roti"],
-            "DESSERT": ["dessert", "desserts", "sweet", "sweets", "kulfi", "ice cream", "halwa", "gulab", "ras", "jalebi"],
-            "BEVERAGE": ["drink", "drinks", "beverage", "beverages", "chai", "coffee", "lassi", "juice", "soda"],
+        # PRIORITY 1: Check SPECIFIC food items FIRST
+        keyword_terms = {
+            'biryani': 'biryani',
+            'naan': 'naan',
+            'roti': 'roti',
+            'chicken': 'chicken',
+            'paneer': 'paneer',
+            'dal': 'dal',
+            'tikka': 'tikka',
+            'kulfi': 'kulfi',
+            'lassi': 'lassi',
+            'chai': 'chai',
+            'soup': 'soup',
+            'samosa': 'samosa',
+            'kebab': 'kebab',
+            'korma': 'korma',
+            'butter': 'butter',
+            'garlic': 'garlic'
         }
 
-        # Check category keywords
+        # Search for specific items
+        for key, search_term in keyword_terms.items():
+            if key in m:
+                rows = db.query(MenuItem).filter(
+                    MenuItem.is_available == True,
+                    or_(
+                        MenuItem.name.ilike(f"%{search_term}%"),
+                        MenuItem.description.ilike(f"%{search_term}%")
+                    )
+                ).all()
+
+                if rows:
+                    print(f"[DEBUG] Found {len(rows)} items matching '{search_term}'")
+                    return [r.to_dict() for r in rows]
+
+        # PRIORITY 2: Category search
+        category_mapping = {
+            "APPETIZER": ["starter", "starters", "appetizer", "appetizers", "snacks", "tandoori"],
+            "MAIN": ["main", "mains", "curry", "curries", "gravy"],
+            "DESSERT": ["dessert", "desserts", "sweet", "sweets", "ice cream", "halwa", "gulab", "ras", "jalebi"],
+            "BEVERAGE": ["drink", "drinks", "beverage", "beverages", "coffee", "juice", "soda"],
+        }
+
         for category_key, keywords in category_mapping.items():
             if any(k in m for k in keywords):
-                # FIX: Cast ENUM to text for ILIKE
-                from sqlalchemy import cast, String
                 rows = db.query(MenuItem).filter(
                     cast(MenuItem.category, String).ilike(category_key),
                     MenuItem.is_available == True
                 ).all()
-                return [r.to_dict() for r in rows]
-
-        # Keyword search
-        keyword_terms = [
-            'biryani', 'naan', 'roti', 'chicken', 'paneer', 'dal', 'tikka', 'kulfi',
-            'dessert', 'sweet', 'ice cream', 'halwa', 'chai', 'lassi', 'soup'
-        ]
-
-        for term in keyword_terms:
-            if term in m:
-                rows = db.query(MenuItem).filter(
-                    MenuItem.is_available == True,
-                    (
-                        MenuItem.name.ilike(f"%{term}%") |
-                        MenuItem.description.ilike(f"%{term}%")
-                    )
-                ).all()
                 if rows:
+                    print(f"[DEBUG] Found {len(rows)} items in category '{category_key}'")
                     return [r.to_dict() for r in rows]
 
-        # Fallback: return first 8 items
+        # PRIORITY 3: Fallback
+        print("[DEBUG] No match, returning first 8 items")
         rows = db.query(MenuItem).filter(MenuItem.is_available == True).limit(8).all()
         return [r.to_dict() for r in rows]
 
     def _save_chat_log(self, db: Session, user_id, session_id, user_message, bot_response, intent):
+        """Save chat to database"""
         entry = ChatLog(
             user_id=user_id,
             session_id=session_id,
